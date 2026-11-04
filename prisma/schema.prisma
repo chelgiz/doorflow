@@ -1,0 +1,496 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OptionSelectionMode {
+  SINGLE
+  MULTIPLE
+}
+
+enum OptionPricingUnit {
+  PER_DOOR
+  PER_ORDER
+}
+
+enum PricingMethod {
+  FIXED
+  PER_DOOR
+  PER_UNIT
+  PERCENTAGE
+}
+
+enum LeadType {
+  ORDER
+  MEASUREMENT
+}
+
+enum LeadStatus {
+  NEW
+  IN_PROGRESS
+  CONTACTED
+  MEASUREMENT_SCHEDULED
+  MEASURED
+  PROPOSAL_PREPARED
+  AWAITING_DECISION
+  SALE
+  REJECTED
+  COMPLETED
+}
+
+enum AdminRole {
+  OWNER
+  ADMIN
+  MANAGER
+  MEASURER
+  INSTALLER
+}
+
+enum MeasurementStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+}
+
+enum OrderStatus {
+  CONFIRMED
+  IN_PROGRESS
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum InstallationStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  ISSUE
+  CANCELLED
+}
+
+enum CustomerActivityType {
+  NOTE
+  CALL
+  SMS
+  EMAIL
+  OTHER
+}
+
+enum StoreAssetType {
+  PRODUCT_IMAGE
+  STORE_LOGO
+  STORE_BANNER
+}
+
+model Store {
+  id            String              @id @default(uuid()) @db.Uuid
+  slug          String              @unique @db.VarChar(80)
+  name          String              @db.VarChar(160)
+  isDemo        Boolean             @default(false)
+  settings      Json                @default("{}")
+  storefront    Storefront?
+  manufacturers Manufacturer[]
+  products      Product[]
+  pricingRules  PricingRule[]
+  leads         Lead[]
+  users         AdminUser[]
+  locations     StoreLocation[]
+  loginAttempts AdminLoginAttempt[]
+  publicSubmissionLimits PublicSubmissionLimit[]
+  assets        StoreAsset[]
+  measurements Measurement[]
+  orders        Order[]
+  installations Installation[]
+  activities    CustomerActivity[]
+  operationAudits OperationAudit[]
+  createdAt     DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime            @updatedAt @db.Timestamptz(3)
+}
+
+model AdminLoginAttempt {
+  id              String    @id @default(uuid()) @db.Uuid
+  storeId         String    @db.Uuid
+  store           Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  subjectHash     String    @db.Char(64)
+  attempts        Int       @default(0)
+  windowStartedAt DateTime  @db.Timestamptz(3)
+  blockedUntil    DateTime? @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@unique([storeId, subjectHash])
+  @@index([blockedUntil])
+}
+
+model PublicSubmissionLimit {
+  id              String   @id @default(uuid()) @db.Uuid
+  storeId         String   @db.Uuid
+  store           Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  fingerprintHash String   @db.Char(64)
+  attempts        Int      @default(0)
+  windowStartedAt DateTime @db.Timestamptz(3)
+  blockedUntil    DateTime? @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([storeId, fingerprintHash])
+  @@index([windowStartedAt])
+}
+
+model AdminUser {
+  id            String              @id @default(uuid()) @db.Uuid
+  storeId       String              @db.Uuid
+  store         Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  email         String              @db.VarChar(254)
+  passwordHash  String              @db.VarChar(255)
+  role          AdminRole           @default(MANAGER)
+  isActive      Boolean             @default(true)
+  sessions      AdminSession[]
+  statusChanges LeadStatusHistory[]
+  assignedMeasurements Measurement[] @relation("MeasurementAssignee")
+  createdMeasurements  Measurement[] @relation("MeasurementCreator")
+  managedOrders        Order[]       @relation("OrderManager")
+  createdOrders        Order[]       @relation("OrderCreator")
+  receivedPayments    OrderPayment[] @relation("PaymentReceiver")
+  assignedInstallations Installation[] @relation("InstallationAssignee")
+  createdInstallations  Installation[] @relation("InstallationCreator")
+  customerActivities CustomerActivity[]
+  operationAudits OperationAudit[]
+  lastLoginAt   DateTime?           @db.Timestamptz(3)
+  createdAt     DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime            @updatedAt @db.Timestamptz(3)
+
+  @@unique([storeId, email])
+  @@index([storeId, role, isActive])
+}
+
+model AdminSession {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @db.Char(64)
+  expiresAt DateTime  @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, expiresAt])
+}
+
+model StoreLocation {
+  id        String   @id @default(uuid()) @db.Uuid
+  storeId   String   @db.Uuid
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String   @db.VarChar(120)
+  address   String   @db.VarChar(300)
+  phone     String?  @db.VarChar(24)
+  businessHours String? @db.VarChar(300)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([storeId, isActive, sortOrder])
+}
+
+model Storefront {
+  id          String   @id @default(uuid()) @db.Uuid
+  storeId     String   @unique @db.Uuid
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  draft       Json
+  published   Json
+  publishedAt DateTime? @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model Manufacturer {
+  id        String    @id @default(uuid()) @db.Uuid
+  storeId   String    @db.Uuid
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String    @db.VarChar(160)
+  series    String?   @db.VarChar(160)
+  products  Product[]
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@unique([storeId, name])
+  @@index([storeId])
+}
+
+model Product {
+  id             String               @id @default(uuid()) @db.Uuid
+  storeId        String               @db.Uuid
+  store          Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  manufacturerId String?              @db.Uuid
+  manufacturer   Manufacturer?        @relation(fields: [manufacturerId], references: [id], onDelete: SetNull)
+  slug           String               @db.VarChar(100)
+  model          String               @db.VarChar(100)
+  name           String               @db.VarChar(160)
+  description    String               @db.VarChar(2000)
+  category       String               @db.VarChar(80)
+  basePriceMinor BigInt
+  costMinor      BigInt?
+  currency       String               @default("RUB") @db.Char(3)
+  specifications Json                 @default("{}")
+  isDemo         Boolean              @default(false)
+  isActive       Boolean              @default(true)
+  optionGroups   ProductOptionGroup[]
+  leads          Lead[]
+  assets         StoreAsset[]
+  createdAt      DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime             @updatedAt @db.Timestamptz(3)
+
+  @@unique([storeId, slug])
+  @@index([storeId, isActive, category])
+  @@index([manufacturerId])
+}
+
+model ProductOptionGroup {
+  id            String              @id @default(uuid()) @db.Uuid
+  productId     String              @db.Uuid
+  product       Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  key           String              @db.VarChar(64)
+  label         String              @db.VarChar(100)
+  selectionMode OptionSelectionMode @default(SINGLE)
+  required      Boolean             @default(false)
+  minSelections Int                 @default(0)
+  maxSelections Int                 @default(1)
+  sortOrder     Int                 @default(0)
+  isActive      Boolean             @default(true)
+  options       ProductOption[]
+
+  @@unique([productId, key])
+  @@index([productId, isActive, sortOrder])
+}
+
+model ProductOption {
+  id          String             @id @default(uuid()) @db.Uuid
+  groupId     String             @db.Uuid
+  group       ProductOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  key         String             @db.VarChar(64)
+  label       String             @db.VarChar(100)
+  priceMinor  BigInt             @default(0)
+  pricingUnit OptionPricingUnit  @default(PER_DOOR)
+  isActive    Boolean            @default(true)
+  sortOrder   Int                @default(0)
+
+  @@unique([groupId, key])
+  @@index([groupId, isActive, sortOrder])
+}
+
+model StoreAsset {
+  id          String         @id @default(uuid()) @db.Uuid
+  storeId     String         @db.Uuid
+  store       Store          @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  productId   String?        @db.Uuid
+  product     Product?       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  type        StoreAssetType
+  contentType String         @default("image/webp") @db.VarChar(32)
+  byteSize    Int
+  sha256      String         @db.Char(64)
+  data        Bytes          @db.ByteA
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now()) @db.Timestamptz(3)
+
+  @@index([storeId, type, createdAt])
+  @@index([productId, sortOrder, createdAt])
+}
+
+model PricingRule {
+  id          String        @id @default(uuid()) @db.Uuid
+  storeId     String        @db.Uuid
+  store       Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  key         String        @db.VarChar(64)
+  label       String        @db.VarChar(100)
+  method      PricingMethod
+  priceMinor  BigInt        @default(0)
+  basisPoints Int?
+  maxQuantity Int           @default(1)
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+
+  @@unique([storeId, key])
+  @@index([storeId, isActive])
+}
+
+model Lead {
+  id                    String              @id @default(uuid()) @db.Uuid
+  storeId               String              @db.Uuid
+  store                 Store               @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  productId             String?             @db.Uuid
+  product               Product?            @relation(fields: [productId], references: [id], onDelete: SetNull)
+  type                  LeadType
+  status                LeadStatus          @default(NEW)
+  customerName          String              @db.VarChar(120)
+  phone                 String              @db.VarChar(24)
+  address               String?             @db.VarChar(300)
+  comment               String?             @db.VarChar(1200)
+  source                String?             @db.VarChar(120)
+  utmSource             String?             @db.VarChar(120)
+  utmMedium             String?             @db.VarChar(120)
+  utmCampaign           String?             @db.VarChar(160)
+  utmContent            String?             @db.VarChar(160)
+  utmTerm               String?             @db.VarChar(160)
+  selectedConfiguration Json?
+  quoteSnapshot         Json?
+  personalDataConsentAt DateTime            @db.Timestamptz(3)
+  consentNoticeVersion  String              @db.VarChar(40)
+  idempotencyKey        String?             @db.VarChar(64)
+  idempotencyHash       String?             @db.Char(64)
+  statusHistory         LeadStatusHistory[]
+  measurements          Measurement[]
+  order                 Order?
+  customerActivities    CustomerActivity[]
+  createdAt             DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime            @updatedAt @db.Timestamptz(3)
+
+  @@index([storeId, status, createdAt])
+  @@index([storeId, phone])
+  @@index([productId])
+  @@unique([storeId, idempotencyKey])
+}
+
+model LeadStatusHistory {
+  id          String      @id @default(uuid()) @db.Uuid
+  leadId      String      @db.Uuid
+  lead        Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  changedById String?     @db.Uuid
+  changedBy   AdminUser?  @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  from        LeadStatus?
+  to          LeadStatus
+  note        String?     @db.VarChar(500)
+  changedAt   DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([leadId, changedAt])
+}
+
+model Measurement {
+  id                  String            @id @default(uuid()) @db.Uuid
+  storeId             String            @db.Uuid
+  store               Store             @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  leadId              String            @db.Uuid
+  lead                Lead              @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  assignedMeasurerId  String?           @db.Uuid
+  assignedMeasurer    AdminUser?        @relation("MeasurementAssignee", fields: [assignedMeasurerId], references: [id], onDelete: SetNull)
+  createdById         String            @db.Uuid
+  createdBy           AdminUser         @relation("MeasurementCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  scheduledAt         DateTime          @db.Timestamptz(3)
+  address             String            @db.VarChar(300)
+  status              MeasurementStatus @default(SCHEDULED)
+  results             Json?
+  comments            String?           @db.VarChar(2000)
+  completedAt         DateTime?         @db.Timestamptz(3)
+  createdAt           DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime          @updatedAt @db.Timestamptz(3)
+
+  @@index([storeId, status, scheduledAt])
+  @@index([assignedMeasurerId, status, scheduledAt])
+  @@index([leadId, scheduledAt])
+}
+
+model Order {
+  id               String      @id @default(uuid()) @db.Uuid
+  storeId          String      @db.Uuid
+  store            Store       @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  leadId           String      @unique @db.Uuid
+  lead             Lead        @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  managerId        String      @db.Uuid
+  manager          AdminUser   @relation("OrderManager", fields: [managerId], references: [id], onDelete: Restrict)
+  createdById      String      @db.Uuid
+  createdBy        AdminUser   @relation("OrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  status           OrderStatus @default(CONFIRMED)
+  customerName     String      @db.VarChar(120)
+  phone            String      @db.VarChar(24)
+  address          String?     @db.VarChar(300)
+  currency         String      @default("RUB") @db.Char(3)
+  configurationSnapshot Json
+  sourceQuoteSnapshot   Json
+  subtotalMinor    BigInt
+  discountMinor    BigInt      @default(0)
+  totalMinor       BigInt
+  costMinor        BigInt?
+  prepaymentMinor  BigInt      @default(0)
+  balanceMinor     BigInt
+  createdAt        DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
+  installation     Installation?
+  payments         OrderPayment[]
+
+  @@index([storeId, status, createdAt])
+  @@index([managerId, status, createdAt])
+}
+
+model OrderPayment {
+  id              String    @id @default(uuid()) @db.Uuid
+  orderId         String    @db.Uuid
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  amountMinor     BigInt
+  note            String?   @db.VarChar(500)
+  receivedById    String    @db.Uuid
+  receivedBy      AdminUser @relation("PaymentReceiver", fields: [receivedById], references: [id], onDelete: Restrict)
+  idempotencyKey  String?   @unique @db.VarChar(64)
+  idempotencyHash String?   @db.Char(64)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([orderId, createdAt])
+}
+
+model Installation {
+  id                String             @id @default(uuid()) @db.Uuid
+  storeId           String             @db.Uuid
+  store             Store              @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  orderId           String             @unique @db.Uuid
+  order             Order              @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  assignedInstallerId String?          @db.Uuid
+  assignedInstaller AdminUser?         @relation("InstallationAssignee", fields: [assignedInstallerId], references: [id], onDelete: SetNull)
+  createdById       String             @db.Uuid
+  createdBy         AdminUser          @relation("InstallationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  scheduledAt       DateTime           @db.Timestamptz(3)
+  address           String             @db.VarChar(300)
+  status            InstallationStatus @default(SCHEDULED)
+  result            String?            @db.VarChar(2000)
+  comments          String?            @db.VarChar(2000)
+  completedAt       DateTime?          @db.Timestamptz(3)
+  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @db.Timestamptz(3)
+
+  @@index([storeId, status, scheduledAt])
+  @@index([assignedInstallerId, status, scheduledAt])
+}
+
+model CustomerActivity {
+  id        String              @id @default(uuid()) @db.Uuid
+  storeId   String              @db.Uuid
+  store     Store               @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  leadId    String              @db.Uuid
+  lead      Lead                @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  type      CustomerActivityType
+  body      String              @db.VarChar(2000)
+  createdById String            @db.Uuid
+  createdBy AdminUser           @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt DateTime            @default(now()) @db.Timestamptz(3)
+
+  @@index([storeId, leadId, createdAt])
+}
+
+model OperationAudit {
+  id         String    @id @default(uuid()) @db.Uuid
+  storeId    String    @db.Uuid
+  store      Store     @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  entityType String    @db.VarChar(32)
+  entityId   String    @db.Uuid
+  action     String    @db.VarChar(48)
+  changes    Json
+  actorId    String?   @db.Uuid
+  actor      AdminUser? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorEmail String    @db.VarChar(254)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([storeId, entityType, entityId, createdAt])
+  @@index([storeId, createdAt])
+}

@@ -1,0 +1,30 @@
+[Unit]
+Description=Encrypted offsite DoorFlow PostgreSQL backup
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=doorflow
+Group=doorflow
+WorkingDirectory=/srv/doorflow/current
+EnvironmentFile=/etc/doorflow/doorflow.env
+Environment=NODE_ENV=production
+Environment="RSYNC_RSH=/usr/bin/ssh -i /etc/doorflow/backup_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/doorflow/backup_known_hosts"
+UMask=0077
+ExecStart=/usr/bin/npm run db:backup
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=full
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+SyslogIdentifier=doorflow-backup
+
+[Install]
+WantedBy=multi-user.target

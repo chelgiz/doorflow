@@ -1,0 +1,1 @@
+ALTER TYPE "StoreAssetType" ADD VALUE 'STORE_BANNER';

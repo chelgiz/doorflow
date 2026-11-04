@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily DoorFlow encrypted PostgreSQL backup
+
+[Timer]
+OnCalendar=*-*-* 02:15:00
+RandomizedDelaySec=15m
+Persistent=true
+Unit=doorflow-backup.service
+
+[Install]
+WantedBy=timers.target
