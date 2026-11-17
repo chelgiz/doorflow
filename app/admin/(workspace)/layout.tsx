@@ -16,6 +16,7 @@ const navigation = [
   { href: "/admin/orders", label: "Заказы" },
   { href: "/admin/installations", label: "Установки" },
   { href: "/admin/deliveries", label: "Доставки" },
+  { href: "/admin/analytics", label: "Аналитика" },
   { href: "/admin/settings", label: "Настройки магазина" },
   { href: "/admin/users", label: "Сотрудники" },
 ];
@@ -40,6 +41,7 @@ async function AuthenticatedAdminWorkspace({ children }: { children: ReactNode }
     if (item.href === "/admin/measurements") return roleCan(actor.role, "operations:read") || roleCan(actor.role, "measurements:own");
     if (item.href === "/admin/installations") return roleCan(actor.role, "operations:read") || roleCan(actor.role, "installations:own");
     if (item.href === "/admin/deliveries") return roleCan(actor.role, "operations:read");
+    if (item.href === "/admin/analytics") return roleCan(actor.role, "operations:read");
     if (item.href === "/admin/orders") return roleCan(actor.role, "operations:read");
     return true;
   });
