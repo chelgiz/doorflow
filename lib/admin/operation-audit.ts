@@ -5,7 +5,7 @@ import type { AdminActor } from "@/lib/admin/auth";
 export async function writeOperationAudit(
   transaction: Prisma.TransactionClient,
   actor: AdminActor,
-  entityType: "MEASUREMENT" | "ORDER" | "INSTALLATION" | "CUSTOMER_ACTIVITY" | "ADMIN_USER" | "LEAD",
+  entityType: "MEASUREMENT" | "ORDER" | "INSTALLATION" | "DELIVERY" | "CUSTOMER_ACTIVITY" | "ADMIN_USER" | "LEAD",
   entityId: string,
   action: string,
   changes: Prisma.InputJsonValue,

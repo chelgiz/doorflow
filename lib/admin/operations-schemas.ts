@@ -102,3 +102,39 @@ export const installationTransitions = {
   COMPLETED: [],
   CANCELLED: [],
 } as const;
+
+export const deliveryCreateSchema = z.object({
+  orderId: databaseIdSchema,
+  assignedEmployeeId: databaseIdSchema.nullable(),
+  scheduledAt: scheduledAtSchema,
+  address: z.string().trim().min(3).max(300),
+  comments: z.string().trim().max(2000).optional(),
+}).strict();
+
+export const deliveryUpdateSchema = z.object({
+  assignedEmployeeId: databaseIdSchema.nullable().optional(),
+  scheduledAt: scheduledAtSchema.optional(),
+  address: z.string().trim().min(3).max(300).optional(),
+  status: z.enum(["SCHEDULED", "CONFIRMED", "IN_PROGRESS", "DELIVERED", "FAILED", "CANCELLED"]).optional(),
+  result: z.string().trim().max(2000).optional(),
+  comments: z.string().trim().max(2000).optional(),
+}).strict().refine((value) => Object.keys(value).length > 0, "Provide at least one field");
+
+export const deliveryListStatusSchema = z.enum([
+  "all",
+  "SCHEDULED",
+  "CONFIRMED",
+  "IN_PROGRESS",
+  "DELIVERED",
+  "FAILED",
+  "CANCELLED",
+]);
+
+export const deliveryTransitions = {
+  SCHEDULED: ["CONFIRMED", "IN_PROGRESS", "FAILED", "CANCELLED"],
+  CONFIRMED: ["IN_PROGRESS", "FAILED", "CANCELLED"],
+  IN_PROGRESS: ["DELIVERED", "FAILED"],
+  DELIVERED: [],
+  FAILED: ["SCHEDULED", "CANCELLED"],
+  CANCELLED: [],
+} as const;

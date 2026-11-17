@@ -99,6 +99,16 @@ enum RejectionReason {
   NO_NEED
 }
 
+/// Delivery lifecycle (step 3.1).
+enum DeliveryStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
 model Store {
   id            String              @id @default(uuid()) @db.Uuid
   slug          String              @unique @db.VarChar(80)
@@ -118,6 +128,7 @@ model Store {
   measurements Measurement[]
   orders        Order[]
   installations Installation[]
+  deliveries    Delivery[]
   activities    CustomerActivity[]
   operationAudits OperationAudit[]
   createdAt     DateTime            @default(now()) @db.Timestamptz(3)
@@ -169,6 +180,8 @@ model AdminUser {
   receivedPayments    OrderPayment[] @relation("PaymentReceiver")
   assignedInstallations Installation[] @relation("InstallationAssignee")
   createdInstallations  Installation[] @relation("InstallationCreator")
+  assignedDeliveries  Delivery[]       @relation("DeliveryAssignee")
+  createdDeliveries   Delivery[]       @relation("DeliveryCreator")
   customerActivities CustomerActivity[]
   operationAudits OperationAudit[]
   assignedLeads  Lead[]            @relation("LeadAssignee")
@@ -438,6 +451,7 @@ model Order {
   createdAt        DateTime    @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
   installation     Installation?
+  delivery         Delivery?
   payments         OrderPayment[]
 
   @@index([storeId, status, createdAt])
@@ -512,4 +526,31 @@ model OperationAudit {
 
   @@index([storeId, entityType, entityId, createdAt])
   @@index([storeId, createdAt])
+}
+
+/// Delivery of an order to the customer (step 3.1).
+/// A separate entity, not an order status: it carries its own schedule,
+/// address, performer and progress, like an installation.
+model Delivery {
+  id                 String         @id @default(uuid()) @db.Uuid
+  storeId            String         @db.Uuid
+  store              Store          @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  orderId            String         @unique @db.Uuid
+  order              Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  assignedEmployeeId String?        @db.Uuid
+  assignedEmployee   AdminUser?     @relation("DeliveryAssignee", fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+  createdById        String         @db.Uuid
+  createdBy          AdminUser      @relation("DeliveryCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  scheduledAt        DateTime       @db.Timestamptz(3)
+  address            String         @db.VarChar(300)
+  status             DeliveryStatus @default(SCHEDULED)
+  result             String?        @db.VarChar(2000)
+  comments           String?        @db.VarChar(2000)
+  deliveredAt        DateTime?      @db.Timestamptz(3)
+  createdAt          DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime       @updatedAt @db.Timestamptz(3)
+
+  @@index([storeId, status, scheduledAt])
+  @@index([assignedEmployeeId, status, scheduledAt])
+  @@index([orderId, scheduledAt])
 }
