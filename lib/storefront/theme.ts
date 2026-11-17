@@ -31,6 +31,13 @@ export const themePresets = {
     backgroundColor: "#faf6f0",
     textColor: "#382c24",
   },
+  copper: {
+    label: "Медь",
+    primaryColor: "#1b2733",
+    accentColor: "#b85c2e",
+    backgroundColor: "#f5f6f8",
+    textColor: "#1b2733",
+  },
 } as const;
 
 export type ThemePreset = keyof typeof themePresets | "custom";
@@ -55,7 +62,7 @@ export function contrastRatio(first: string, second: string) {
 }
 
 export const storefrontThemeColorsSchema = z.object({
-  preset: z.enum(["warm", "sage", "graphite", "sand", "custom"]),
+  preset: z.enum(["warm", "sage", "graphite", "sand", "copper", "custom"]),
   primaryColor: hexColorSchema,
   accentColor: hexColorSchema,
   backgroundColor: hexColorSchema,

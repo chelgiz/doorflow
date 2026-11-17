@@ -12,7 +12,7 @@ import {
 
 describe("storefront theme validation", () => {
   it("keeps preset labels out of the strict persisted theme configuration", () => {
-    for (const preset of ["warm", "sage", "graphite", "sand"] as const) {
+    for (const preset of ["warm", "sage", "graphite", "sand", "copper"] as const) {
       const theme = themeForPreset(preset);
       expect(storefrontThemeSchema.parse(theme)).toEqual(theme);
     }
