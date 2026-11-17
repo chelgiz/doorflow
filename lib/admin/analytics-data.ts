@@ -299,3 +299,32 @@ function buildUnassigned(leads: LeadRow[]) {
     rejections: leads.filter((lead) => lead.status === "REJECTED").length,
   };
 }
+
+/**
+ * Numbers for the home summary block (step 6). "Today" metrics reuse the store
+ * report with the `today` period; the outstanding balance is deliberately taken
+ * across all orders, not only those created today — it is the current debt.
+ */
+export async function buildHomeSummary(actor: AdminActor) {
+  const today = await buildStoreAnalytics(actor, "today");
+  const prisma = getPrismaClient();
+  const ownScope = actor.role === "MANAGER";
+  const balance = await prisma.order.aggregate({
+    where: {
+      storeId: actor.storeId,
+      ...(ownScope ? { lead: { assignedManagerId: actor.userId } } : {}),
+    },
+    _sum: { balanceMinor: true },
+  });
+  return {
+    asOf: today.period.to,
+    from: today.period.from,
+    leadsToday: today.leads.total,
+    firstContactOverdue: today.discipline.firstContactOverdue,
+    followUpDue: today.discipline.followUpDue,
+    paidTodayMinor: today.finance.paidMinor,
+    outstandingBalanceMinor: Number(balance._sum.balanceMinor ?? BigInt(0)),
+  };
+}
+
+export type HomeSummary = Awaited<ReturnType<typeof buildHomeSummary>>;

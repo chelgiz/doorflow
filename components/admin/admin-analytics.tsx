@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { AnalyticsPeriod } from "@/lib/admin/analytics-metrics";
+import { duration, percent, plural, rubles } from "@/lib/admin/analytics-format";
 import type { AnalyticsReport } from "@/lib/admin/analytics-data";
 import { rejectionReasonLabel } from "@/lib/admin/rejection-reasons";
 
@@ -31,31 +32,6 @@ const unavailableTitles: Record<string, string> = {
   sources: "Источники заявок",
   delivery_lead_time: "Срок доставки",
 };
-
-function rubles(minor: number) {
-  return `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(minor / 100)} ₽`;
-}
-
-function percent(value: number | null) {
-  if (value === null) return "—";
-  return `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(value)} %`;
-}
-
-function duration(minutes: number | null) {
-  if (minutes === null) return "—";
-  if (minutes < 60) return `${Math.round(minutes)} мин`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} ч ${Math.round(minutes % 60)} мин`;
-  return `${Math.floor(hours / 24)} д ${hours % 24} ч`;
-}
-
-function plural(count: number, one: string, few: string, many: string) {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
-  return many;
-}
 
 function share(part: number, whole: number) {
   if (whole <= 0) return 0;
@@ -359,7 +335,7 @@ export function AdminAnalytics({
               </dd>
             </div>
             <div>
-              <dt>Остаток</dt>
+              <dt>Остаток по заказам периода</dt>
               <dd>{rubles(finance.balanceMinor)}</dd>
             </div>
             <div>

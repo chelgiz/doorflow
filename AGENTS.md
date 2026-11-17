@@ -35,8 +35,8 @@
 - **Этап 2 в работе:** 2.1 назначение менеджера (`b4d85a3`); впереди 2.2 первый
   контакт/SLA 2 ч, 2.3 напоминания, 2.4 причины отказа, 2.5 повторные касания.
 - **Этап 6 в работе:** 6.1 API агрегатов `/api/admin/analytics` (`fd43ca9`,
-  `532f3ab`), 6.2 страница `/admin/analytics` на этих данных; далее — блок
-  сводки на главной.
+  `532f3ab`), 6.2 страница `/admin/analytics` (`b65960b`), 6.3 блок сводки на
+  главной.
 - Пилотные данные: 2 заявки (MEASURED + SALE), 1 замер, 1 заказ 73 300 ₽,
   1 оплата 30 000 ₽ (остаток 43 300 ₽), 1 установка SCHEDULED; роли
   owner / manager / measurer / installer.
@@ -73,7 +73,7 @@
 
 ```bash
 export DOORFLOW_TEST_DATABASE_URL='postgresql://doorflow:doorflow_local_only@127.0.0.1:54329/doorflow_test?schema=public'
-npm test        # 111 passed, 27 файлов, 0 skipped (обновляется на каждом шаге)
+npm test        # 115 passed, 28 файлов, 0 skipped (обновляется на каждом шаге)
 npm run typecheck
 npm run lint
 npm run build

@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { ArrowRight, Boxes, ClipboardList, Settings2, Truck, Ruler, Wrench } from "lucide-react";
+import { AdminHomeSummary } from "@/components/admin/admin-home-summary";
+import { buildHomeSummary } from "@/lib/admin/analytics-data";
+import { getCurrentAdmin, roleCan } from "@/lib/admin/auth";
 
 const sections = [
   { href: "/admin/products", title: "Каталог дверей", text: "Карточки, характеристики, комплектации и публикация.", icon: Boxes },
@@ -11,7 +15,11 @@ const sections = [
   { href: "/admin/settings", title: "Магазин и точки", text: "Контактная информация, логотип и торговые адреса.", icon: Settings2 },
 ];
 
-export default function AdminHomePage() {
+export default async function AdminHomePage() {
+  await connection();
+  const actor = await getCurrentAdmin();
+  const summary =
+    actor && roleCan(actor.role, "operations:read") ? await buildHomeSummary(actor) : null;
   return (
     <>
       <div className="admin-page-heading">
@@ -19,6 +27,7 @@ export default function AdminHomePage() {
         <h1>Рабочее пространство</h1>
         <p>Изменения сохраняются в базе магазина. Публичный каталог показывает только опубликованные товары.</p>
       </div>
+      {summary && <AdminHomeSummary summary={summary} />}
       <div className="admin-section-grid">
         {sections.map(({ href, title, text, icon: Icon }) => (
           <Link className="admin-section-card" href={href} key={href}>

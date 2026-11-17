@@ -29,8 +29,11 @@ describe("analytics period start", () => {
     expect(ANALYTICS_PERIODS).toEqual(["today", "7d", "30d", "all"]);
   });
 
-  it("starts today at midnight UTC", () => {
-    expect(analyticsPeriodStart("today", NOW)?.toISOString()).toBe("2026-11-20T00:00:00.000Z");
+  it("starts today at local midnight, so the shop day matches its own calendar", () => {
+    const start = analyticsPeriodStart("today", NOW);
+    expect(start?.getTime()).toBe(new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate()).getTime());
+    expect(start!.getTime()).toBeLessThanOrEqual(NOW.getTime());
+    expect(NOW.getTime() - start!.getTime()).toBeLessThan(24 * 60 * 60 * 1000);
   });
 
   it("counts back seven and thirty days from now", () => {

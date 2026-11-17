@@ -12,12 +12,13 @@ const DAY_MS = 86_400_000;
 
 /**
  * Start of the selected period. `all` is unbounded (null), `today` starts at
- * midnight UTC of the current day.
+ * midnight in the server's local time zone: the store works in local time, so
+ * a UTC boundary would count the wrong hours for the shop.
  */
 export function analyticsPeriodStart(period: AnalyticsPeriod, now: Date): Date | null {
   if (period === "all") return null;
   if (period === "today") {
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }
   const days = period === "7d" ? 7 : 30;
   return new Date(now.getTime() - days * DAY_MS);

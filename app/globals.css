@@ -3362,3 +3362,57 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* Home summary block (analytics step 6.3) */
+.home-summary {
+  margin-bottom: 26px;
+  border: 1px solid var(--line);
+  padding: clamp(16px, 2.4vw, 24px);
+  background: var(--surface);
+}
+
+.home-summary-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.home-summary-head h2 {
+  margin: 6px 0 0;
+  font-family: var(--serif);
+  font-size: 25px;
+  font-weight: 400;
+  letter-spacing: -.02em;
+}
+
+.home-summary-head .admin-record-link {
+  white-space: nowrap;
+}
+
+.home-summary-tiles {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+
+.analytics-tile--alert .analytics-tile-value {
+  color: var(--accent-dark);
+}
+
+@media (max-width: 1050px) {
+  .home-summary-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .home-summary-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .home-summary-tiles {
+    grid-template-columns: 1fr;
+  }
+}
