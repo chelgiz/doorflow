@@ -17,6 +17,15 @@ type Installation = {
   address: string;
   assignedInstaller: { id: string; email: string } | null;
 };
+type Delivery = {
+  id: string;
+  status: string;
+  scheduledAt: string;
+  address: string;
+  result: string | null;
+  deliveredAt: string | null;
+  assignedEmployee: { id: string; email: string } | null;
+};
 type Order = {
   id: string;
   status: string;
@@ -36,8 +45,22 @@ type Order = {
   lead: { id: string };
   payments: Payment[];
   installation: Installation | null;
+  delivery: Delivery | null;
 };
 type AuditEntry = { id: string; action: string; changes: unknown; actorEmail: string; createdAt: string };
+
+const deliveryStatusLabels: Record<string, string> = {
+  SCHEDULED: "Запланирована",
+  CONFIRMED: "Подтверждена",
+  IN_PROGRESS: "В пути",
+  DELIVERED: "Доставлено",
+  FAILED: "Не доставлено",
+  CANCELLED: "Отменена",
+};
+
+function deliveryStatusLabel(status: string) {
+  return deliveryStatusLabels[status] ?? status;
+}
 
 const transitions: Record<string, string[]> = {
   CONFIRMED: ["IN_PROGRESS", "CANCELLED"],
@@ -51,10 +74,12 @@ export function AdminOrderDetail({
   initialOrder,
   initialAudit,
   installers,
+  employees,
 }: {
   initialOrder: Order;
   initialAudit: AuditEntry[];
   installers: Array<{ id: string; email: string }>;
+  employees: Array<{ id: string; email: string; role: string }>;
 }) {
   const [order, setOrder] = useState(initialOrder);
   const [audit, setAudit] = useState(initialAudit);
@@ -65,6 +90,9 @@ export function AdminOrderDetail({
   const [installAt, setInstallAt] = useState("");
   const [installAddress, setInstallAddress] = useState(initialOrder.address ?? "");
   const [installerId, setInstallerId] = useState("");
+  const [deliveryAt, setDeliveryAt] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState(initialOrder.address ?? "");
+  const [deliveryEmployeeId, setDeliveryEmployeeId] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -128,6 +156,28 @@ export function AdminOrderDetail({
       setMessage("Платёж добавлен в неизменяемый финансовый журнал.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Не удалось зарегистрировать платёж");
+    }
+  }
+
+  async function scheduleDelivery(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    try {
+      const data = await responseData(await fetch("/api/admin/deliveries", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          orderId: order.id,
+          assignedEmployeeId: deliveryEmployeeId || null,
+          scheduledAt: new Date(deliveryAt).toISOString(),
+          address: deliveryAddress,
+        }),
+      }));
+      setOrder({ ...order, delivery: data.delivery });
+      setMessage("Доставка запланирована.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Не удалось запланировать доставку");
     }
   }
 
@@ -198,6 +248,39 @@ export function AdminOrderDetail({
               <li key={payment.id}><strong>{formatMinorUnits(payment.amountMinor, order.currency)}</strong><time>{new Date(payment.createdAt).toLocaleString("ru-RU")}</time><span>{payment.receivedBy.email}</span>{payment.note && <p>{payment.note}</p>}</li>
             ))}
           </ol>
+        </section>
+        <section className="admin-panel">
+          <h2>Доставка</h2>
+          {order.delivery ? (
+            <>
+              <p>
+                <a className="admin-record-link" href={`/admin/deliveries/${order.delivery.id}`}>
+                  {new Date(order.delivery.scheduledAt).toLocaleString("ru-RU")} · {deliveryStatusLabel(order.delivery.status)} · открыть доставку
+                </a>
+              </p>
+              <p className="admin-muted">Адрес: {order.delivery.address}</p>
+              <p className="admin-muted">
+                Исполнитель: {order.delivery.assignedEmployee?.email ?? "не назначен"}
+              </p>
+              {order.delivery.deliveredAt && (
+                <p className="admin-success">
+                  Доставлено: {new Date(order.delivery.deliveredAt).toLocaleString("ru-RU")}
+                </p>
+              )}
+            </>
+          ) : (
+            <form className="admin-stack" onSubmit={scheduleDelivery}>
+              <label>Дата и время<input onChange={(event) => setDeliveryAt(event.target.value)} required type="datetime-local" value={deliveryAt} /></label>
+              <label>Адрес<input maxLength={300} onChange={(event) => setDeliveryAddress(event.target.value)} required value={deliveryAddress} /></label>
+              <label>Исполнитель
+                <select onChange={(event) => setDeliveryEmployeeId(event.target.value)} value={deliveryEmployeeId}>
+                  <option value="">Не назначен</option>
+                  {employees.map((person) => <option key={person.id} value={person.id}>{person.email} · {person.role}</option>)}
+                </select>
+              </label>
+              <button className="button button-accent" type="submit">Запланировать доставку</button>
+            </form>
+          )}
         </section>
         <section className="admin-panel">
           <h2>Установка</h2>
