@@ -4,6 +4,7 @@ import { access, chmod, link, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseDatabaseConnection } from "./postgres-connection.mjs";
+import { describeClient, dumpToFile, listArchive, resolvePgClient } from "./pg-client.mjs";
 
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -70,20 +71,12 @@ async function main() {
     if (await pathExists(candidate)) throw new Error(`Refusing to overwrite existing backup file`);
   }
 
-  const databaseEnv = { ...process.env };
-  if (connection.password) databaseEnv.PGPASSWORD = connection.password;
+  const client = await resolvePgClient(connection);
+  console.info(`PostgreSQL backup client: ${describeClient(client)}`);
 
   try {
-    await run("pg_dump", [
-      "--format=custom",
-      "--no-owner",
-      "--no-acl",
-      "--file",
-      temporaryDump,
-      "--dbname",
-      connection.connectionString,
-    ], { env: databaseEnv });
-    await run("pg_restore", ["--list", temporaryDump], { stdio: "ignore" });
+    await dumpToFile({ client, connection, filePath: temporaryDump });
+    await listArchive({ client, connection, filePath: temporaryDump });
 
     if (recipient) {
       await run("age", ["--encrypt", "--recipient", recipient, "--output", temporaryEncrypted, temporaryDump]);

@@ -10,6 +10,7 @@ import {
   getClientConnectionString,
   parseDatabaseConnection,
 } from "./postgres-connection.mjs";
+import { describeClient, listArchive, resolvePgClient, restoreArchive } from "./pg-client.mjs";
 
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -58,7 +59,14 @@ async function main() {
       await run("age", ["--decrypt", "--identity", identity, "--output", archivePath, backupFile]);
     }
 
-    await run("pg_restore", ["--list", isEncrypted ? archivePath : backupFile], { stdio: "ignore" });
+    const restoreClient = await resolvePgClient(target);
+    console.info(`PostgreSQL restore client: ${describeClient(restoreClient)}`);
+
+    await listArchive({
+      client: restoreClient,
+      connection: target,
+      filePath: isEncrypted ? archivePath : backupFile,
+    });
     targetClient = new pg.Client(targetConnection);
     await targetClient.connect();
     const existing = await targetClient.query(`
@@ -74,42 +82,64 @@ async function main() {
     await targetClient.end();
     targetClient = undefined;
 
-    const restoreEnv = { ...process.env };
-    if (target.password) restoreEnv.PGPASSWORD = target.password;
-    await run("pg_restore", [
-      "--single-transaction",
-      "--exit-on-error",
-      "--no-owner",
-      "--no-acl",
-      "--dbname",
-      target.connectionString,
-      isEncrypted ? archivePath : backupFile,
-    ], { env: restoreEnv });
+    await restoreArchive({
+      client: restoreClient,
+      connection: target,
+      filePath: isEncrypted ? archivePath : backupFile,
+    });
 
-    targetClient = new pg.Client(targetConnection);
-    await targetClient.connect();
-    const requiredTables = ["Store", "StoreAsset", "Lead", "Order", "OrderPayment"];
-    const restoredTables = await targetClient.query(`
-      SELECT table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'public'
-        AND table_name = ANY($1::text[])
-    `, [requiredTables]);
-    const restoredNames = new Set(restoredTables.rows.map(({ table_name }) => table_name));
-    const missingTables = requiredTables.filter((name) => !restoredNames.has(name));
-    if (missingTables.length > 0) {
-      throw new Error("Restored database is missing required DoorFlow tables");
-    }
-    const counts = await targetClient.query(`
-      SELECT
-        (SELECT count(*)::text FROM "Store") AS stores,
-        (SELECT count(*)::text FROM "StoreAsset") AS assets,
-        (SELECT count(*)::text FROM "Lead") AS leads
-    `);
-    console.info("PostgreSQL restore verified", counts.rows[0]);
+    await verifyRestoreAgainstSource(source, targetConnection);
   } finally {
     if (targetClient) await targetClient.end().catch(() => undefined);
     await rm(privateDirectory, { recursive: true, force: true });
+  }
+}
+
+const TABLE_QUERY = `
+  SELECT table_name
+  FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+  ORDER BY table_name
+`;
+const MIGRATION_COUNT_QUERY = `
+  SELECT count(*)::text AS count
+  FROM "_prisma_migrations"
+  WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL
+`;
+
+async function verifyRestoreAgainstSource(source, targetConnectionString) {
+  const sourceClient = new pg.Client(getClientConnectionString(source));
+  const targetClient = new pg.Client(targetConnectionString);
+  await sourceClient.connect();
+  await targetClient.connect();
+
+  try {
+    const sourceTables = (await sourceClient.query(TABLE_QUERY)).rows.map((row) => row.table_name);
+    const targetTables = (await targetClient.query(TABLE_QUERY)).rows.map((row) => row.table_name);
+    const missing = sourceTables.filter((name) => !targetTables.includes(name));
+    const unexpected = targetTables.filter((name) => !sourceTables.includes(name));
+    if (missing.length > 0) {
+      throw new Error(`Restored database is missing source tables: ${missing.join(", ")}`);
+    }
+    if (unexpected.length > 0) {
+      throw new Error(`Restored database has tables absent from the source: ${unexpected.join(", ")}`);
+    }
+
+    const sourceMigrations = (await sourceClient.query(MIGRATION_COUNT_QUERY)).rows[0]?.count;
+    const targetMigrations = (await targetClient.query(MIGRATION_COUNT_QUERY)).rows[0]?.count;
+    if (sourceMigrations !== targetMigrations) {
+      throw new Error(
+        `Applied migration count differs: source ${sourceMigrations}, restored ${targetMigrations}`,
+      );
+    }
+
+    console.info("PostgreSQL restore verified", {
+      tables: targetTables.length,
+      appliedMigrations: targetMigrations,
+    });
+  } finally {
+    await sourceClient.end().catch(() => undefined);
+    await targetClient.end().catch(() => undefined);
   }
 }
 
