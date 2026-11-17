@@ -1,17 +1,42 @@
 import { z } from "zod";
 
 const storeIdSchema = z.string().uuid();
-const databaseUrlSchema = z.string().url().refine((value) => {
-  const url = new URL(value);
-  return ["postgres:", "postgresql:"].includes(url.protocol);
-});
+
+/**
+ * Parses a URL without throwing.
+ *
+ * Zod refinements run even when a preceding `.url()` check has already failed,
+ * so any invalid or empty value would otherwise reach `new URL(...)` and throw
+ * a `TypeError` instead of producing a validation error.
+ */
+function parseUrlSafely(value: string): URL | null {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+const databaseUrlSchema = z
+  .string()
+  .url()
+  .refine(
+    (value) => {
+      const url = parseUrlSafely(value);
+      return url !== null && ["postgres:", "postgresql:"].includes(url.protocol);
+    },
+    { message: "DATABASE_URL must use the postgres:// or postgresql:// scheme" },
+  );
 const privacyNoticeUrlSchema = z
   .string()
   .url()
-  .refine((value) => {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.hostname === "localhost";
-  });
+  .refine(
+    (value) => {
+      const url = parseUrlSafely(value);
+      return url !== null && (url.protocol === "https:" || url.hostname === "localhost");
+    },
+    { message: "DOORFLOW_PRIVACY_NOTICE_URL must be an https:// URL" },
+  );
 
 export function isDemoMode() {
   return process.env.DOORFLOW_DEMO_MODE !== "false";
