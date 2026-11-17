@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { rejectionReasonLabel } from "@/lib/admin/rejection-reasons";
 
 const statuses = [
   ["NEW", "Новая"],
@@ -32,6 +33,7 @@ export type LeadSummary = {
   firstContactOverdue: boolean;
   nextActionAt: string | null;
   actionOverdue: boolean;
+  rejectionReason: string | null;
 };
 
 function statusLabel(status: string) {
@@ -105,7 +107,12 @@ export function AdminLeads({
                 <td>{lead.type === "ORDER" ? "Заказ" : "Замер"}{lead.source ? <small>{lead.source}</small> : null}</td>
                 <td>{lead.product ? `${lead.product.name} · ${lead.product.model}` : "Не указана"}</td>
                 <td>{lead.assignedManager ? lead.assignedManager.email : <span className="admin-muted">Не назначен</span>}</td>
-                <td>{statusLabel(lead.status)}</td>
+                <td>
+                  {statusLabel(lead.status)}
+                  {lead.rejectionReason && (
+                    <small className="admin-muted">{rejectionReasonLabel(lead.rejectionReason)}</small>
+                  )}
+                </td>
                 <td>
                   {new Date(lead.createdAt).toLocaleString("ru-RU")}
                   {lead.firstContactOverdue && <span className="admin-sla-badge">SLA просрочен</span>}

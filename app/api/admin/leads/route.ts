@@ -63,6 +63,7 @@ export async function GET(request: Request) {
         assignedManager: { select: { id: true, email: true } },
         firstContactAt: true,
         nextActionAt: true,
+        rejectionReason: true,
         createdAt: true,
         product: { select: { name: true, model: true, slug: true } },
       },

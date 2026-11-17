@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { adminLeadStatuses, statusLabel } from "@/components/admin/admin-leads";
 import { AdminLeadOperations, type CustomerHistory } from "@/components/admin/admin-lead-operations";
+import { REJECTION_REASON_CODES, rejectionReasonLabel } from "@/lib/admin/rejection-reasons";
 
 export type LeadDetailData = {
   id: string;
@@ -50,6 +51,7 @@ export type LeadDetailData = {
   assignedManager: { id: string; email: string } | null;
   firstContactAt: string | null;
   nextActionAt: string | null;
+  rejectionReason: string | null;
 };
 
 function toLocalInputValue(isoDate: string) {
@@ -81,6 +83,7 @@ export function AdminLeadDetail({
 }) {
   const [lead, setLead] = useState<LeadDetailData>(initialLead);
   const [status, setStatus] = useState(initialLead.status);
+  const [rejectionReason, setRejectionReason] = useState(initialLead.rejectionReason ?? "");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -176,7 +179,11 @@ export function AdminLeadDetail({
       const response = await fetch(`/api/admin/leads/${id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ status, note }),
+        body: JSON.stringify({
+          status,
+          note,
+          ...(status === "REJECTED" && rejectionReason ? { rejectionReason } : {}),
+        }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Не удалось обновить статус");
@@ -303,16 +310,35 @@ export function AdminLeadDetail({
         </section>
         <section className="admin-panel">
           <h2>Статус заявки</h2>
+          {lead.rejectionReason && (
+            <p className="admin-muted">Причина отказа: {rejectionReasonLabel(lead.rejectionReason)}</p>
+          )}
           <form className="admin-stack" onSubmit={saveStatus}>
             <label>Новый статус
               <select onChange={(event) => setStatus(event.target.value)} value={status}>
                 {adminLeadStatuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </label>
+            {status === "REJECTED" && (
+              <label>Причина отказа (обязательно)
+                <select onChange={(event) => setRejectionReason(event.target.value)} value={rejectionReason}>
+                  <option value="">Выберите причину</option>
+                  {REJECTION_REASON_CODES.map((code) => (
+                    <option key={code} value={code}>{rejectionReasonLabel(code)}</option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label>Комментарий к изменению<textarea onChange={(event) => setNote(event.target.value)} maxLength={500} rows={3} value={note} /></label>
             {error && <p className="admin-error" role="alert">{error}</p>}
             {message && <p className="admin-success" role="status">{message}</p>}
-            <button className="button button-accent" type="submit">Сохранить статус</button>
+            <button
+              className="button button-accent"
+              disabled={status === "REJECTED" && !rejectionReason}
+              type="submit"
+            >
+              Сохранить статус
+            </button>
           </form>
         </section>
         <section className="admin-panel">

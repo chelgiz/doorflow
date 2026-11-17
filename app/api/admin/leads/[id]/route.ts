@@ -6,11 +6,15 @@ import { jsonResponse, readJsonRequest } from "@/lib/http/json";
 import { LeadStatus } from "@/generated/prisma/client";
 import { databaseIdSchema } from "@/lib/admin/schemas";
 import { getCustomerHistory } from "@/lib/admin/customer-history";
+import { writeOperationAudit } from "@/lib/admin/operation-audit";
+import { rejectionReasonLabel } from "@/lib/admin/rejection-reasons";
+import { RejectionReason } from "@/generated/prisma/client";
 
 type RouteContext = { params: Promise<{ id: string }> };
 const statusSchema = z.object({
   status: z.enum(Object.values(LeadStatus)),
   note: z.string().trim().max(500).optional(),
+  rejectionReason: z.enum(Object.values(RejectionReason)).optional(),
 }).strict();
 
 export async function GET(_request: Request, { params }: RouteContext) {
@@ -70,6 +74,13 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   if (!parsed.success) {
     return jsonResponse({ error: "Invalid lead status", issues: z.treeifyError(parsed.error) }, 400);
   }
+  const rejecting = parsed.data.status === "REJECTED";
+  if (rejecting && !parsed.data.rejectionReason) {
+    return jsonResponse({ error: "Rejection reason is required for REJECTED status" }, 400);
+  }
+  if (!rejecting && parsed.data.rejectionReason) {
+    return jsonResponse({ error: "Rejection reason is only allowed for REJECTED status" }, 400);
+  }
 
   const prisma = getPrismaClient();
   try {
@@ -87,20 +98,31 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         return transaction.lead.findUniqueOrThrow({ where: { id: current.id } });
       }
 
+      const rejectionReason = rejecting ? parsed.data.rejectionReason ?? null : null;
       const changed = await transaction.lead.updateMany({
         where: { id: current.id, storeId: authorization.actor.storeId, status: current.status },
-        data: { status: parsed.data.status },
+        data: { status: parsed.data.status, rejectionReason },
       });
       if (changed.count !== 1) return "conflict" as const;
+      const historyNote = rejecting
+        ? `Причина отказа: ${rejectionReasonLabel(rejectionReason ?? "")}${parsed.data.note ? ` · ${parsed.data.note}` : ""}`
+        : parsed.data.note;
       await transaction.leadStatusHistory.create({
         data: {
           leadId: current.id,
           from: current.status,
           to: parsed.data.status,
-          note: parsed.data.note,
+          note: historyNote,
           changedById: authorization.actor.userId,
         },
       });
+      if (rejecting) {
+        await writeOperationAudit(transaction, authorization.actor, "LEAD", current.id, "REJECTED", {
+          status: { from: current.status, to: parsed.data.status },
+          rejectionReason: { from: null, to: rejectionReason },
+          note: parsed.data.note ?? null,
+        });
+      }
       return transaction.lead.findUniqueOrThrow({ where: { id: current.id } });
     });
     if (!updated) return jsonResponse({ error: "Lead not found" }, 404);

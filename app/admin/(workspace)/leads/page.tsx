@@ -28,6 +28,7 @@ export default async function AdminLeadsPage() {
         assignedManager: { select: { id: true, email: true } },
         firstContactAt: true,
         nextActionAt: true,
+        rejectionReason: true,
       },
     }),
     prisma.lead.count({ where }),
