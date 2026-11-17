@@ -36,7 +36,6 @@ integration("analytics aggregates", () => {
   let storeId: string;
   let ownerToken: string;
   let managerToken: string;
-  let oldLeadId: string;
 
   function hash(token: string) {
     return createHash("sha256").update(token).digest("hex");
@@ -126,7 +125,7 @@ integration("analytics aggregates", () => {
       },
     });
     // Old lead outside the 30-day window.
-    const oldLead = await prisma.lead.create({
+    await prisma.lead.create({
       data: {
         ...base,
         type: "MEASUREMENT",
@@ -135,7 +134,6 @@ integration("analytics aggregates", () => {
         createdAt: new Date(now - 40 * 24 * HOUR),
       },
     });
-    oldLeadId = oldLead.id;
 
     await prisma.order.create({
       data: {
@@ -183,6 +181,19 @@ integration("analytics aggregates", () => {
     expect(data.scope).toBe("store");
     expect(data.leads.total).toBe(4); // old lead excluded by the period
     expect(data.leads.byType).toEqual({ ORDER: 2, MEASUREMENT: 2 });
+    // Statuses are zero-filled so the funnel shape does not depend on the period.
+    expect(data.leads.byStatus).toEqual({
+      NEW: 1,
+      IN_PROGRESS: 1,
+      CONTACTED: 0,
+      MEASUREMENT_SCHEDULED: 0,
+      MEASURED: 0,
+      PROPOSAL_PREPARED: 0,
+      AWAITING_DECISION: 0,
+      SALE: 1,
+      REJECTED: 1,
+      COMPLETED: 0,
+    });
     expect(data.leads.assignmentCoveragePercent).toBe(75);
 
     expect(data.conversion.orderLeads).toBe(2);

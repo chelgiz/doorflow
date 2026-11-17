@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { LeadStatus } from "@/generated/prisma/client";
 import { authorizeAdmin, leadVisibilityFilter } from "@/lib/admin/auth";
+import { ANALYTICS_PERIODS, analyticsPeriodStart, toPercent } from "@/lib/admin/analytics-metrics";
 import { CLOSED_LEAD_STATUSES } from "@/lib/admin/lead-actions";
 import { needsFollowUp } from "@/lib/admin/lead-followup";
 import { FIRST_CONTACT_SLA_MS, isFirstContactOverdue } from "@/lib/admin/lead-sla";
@@ -7,17 +9,7 @@ import { REJECTION_REASON_CODES } from "@/lib/admin/rejection-reasons";
 import { getPrismaClient } from "@/lib/db/prisma";
 import { jsonResponse } from "@/lib/http/json";
 
-const DAY_MS = 86_400_000;
-const periodSchema = z.enum(["today", "7d", "30d", "all"]);
-
-function periodStart(period: z.infer<typeof periodSchema>, now: Date): Date | null {
-  if (period === "all") return null;
-  if (period === "today") {
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  }
-  const days = period === "7d" ? 7 : 30;
-  return new Date(now.getTime() - days * DAY_MS);
-}
+const periodSchema = z.enum(ANALYTICS_PERIODS);
 
 type LeadRow = {
   id: string;
@@ -45,7 +37,7 @@ function contactStats(leads: LeadRow[]) {
       : null,
     medianMinutes: sorted.length ? Math.round(sorted[Math.floor(sorted.length / 2)]) : null,
     withinSla,
-    withinSlaPercent: contacted.length ? Math.round((withinSla / contacted.length) * 100) : null,
+    withinSlaPercent: toPercent(withinSla, contacted.length),
   };
 }
 
@@ -56,12 +48,10 @@ function conversionStats(leads: LeadRow[]) {
   return {
     orderLeads: orderLeads.length,
     orderConverted,
-    orderConversionPercent: orderLeads.length
-      ? Math.round((orderConverted / orderLeads.length) * 100)
-      : null,
+    orderConversionPercent: toPercent(orderConverted, orderLeads.length),
     allLeads: leads.length,
     allConverted,
-    allConversionPercent: leads.length ? Math.round((allConverted / leads.length) * 100) : null,
+    allConversionPercent: toPercent(allConverted, leads.length),
   };
 }
 
@@ -85,7 +75,7 @@ export async function GET(request: Request) {
 
   const prisma = getPrismaClient();
   const now = new Date();
-  const from = periodStart(parsedPeriod.data, now);
+  const from = analyticsPeriodStart(parsedPeriod.data, now);
 
   const leadWhere = {
     storeId: actor.storeId,
@@ -110,10 +100,17 @@ export async function GET(request: Request) {
     },
   })) as LeadRow[];
 
+  // Every status is always present (zero-filled) so the funnel keeps a stable
+  // shape regardless of the selected period.
   const byType = { ORDER: 0, MEASUREMENT: 0 };
+  const byStatus = Object.fromEntries(
+    Object.values(LeadStatus).map((status) => [status, 0]),
+  ) as Record<LeadStatus, number>;
   for (const lead of leads) {
     if (lead.type === "ORDER") byType.ORDER += 1;
     else if (lead.type === "MEASUREMENT") byType.MEASUREMENT += 1;
+    const status = lead.status as LeadStatus;
+    if (status in byStatus) byStatus[status] += 1;
   }
   const assigned = leads.filter((lead) => lead.assignedManagerId !== null).length;
 
@@ -166,7 +163,7 @@ export async function GET(request: Request) {
       return {
         reason,
         count,
-        sharePercent: rejectionTotal ? Math.round((count / rejectionTotal) * 100) : 0,
+        sharePercent: toPercent(count, rejectionTotal) ?? 0,
       };
     }),
   };
@@ -197,7 +194,7 @@ export async function GET(request: Request) {
     paidMinor: Number(paid),
     balanceMinor: Number(orderAggregate._sum.balanceMinor ?? BigInt(0)),
     averageCheckMinor: orderAggregate._avg.totalMinor ? Math.round(Number(orderAggregate._avg.totalMinor)) : null,
-    collectionPercent: ordersTotal > BigInt(0) ? Math.round((Number(paid) / Number(ordersTotal)) * 100) : null,
+    collectionPercent: toPercent(Number(paid), Number(ordersTotal)),
   };
 
   // Manager breakdown is computed in memory: the pilot dataset is small, and
@@ -259,8 +256,9 @@ export async function GET(request: Request) {
     leads: {
       total: leads.length,
       byType,
+      byStatus,
       assigned,
-      assignmentCoveragePercent: leads.length ? Math.round((assigned / leads.length) * 100) : null,
+      assignmentCoveragePercent: toPercent(assigned, leads.length),
     },
     conversion: conversionStats(leads),
     firstContact: contactStats(leads),
