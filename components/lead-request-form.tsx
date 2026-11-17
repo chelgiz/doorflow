@@ -153,7 +153,7 @@ export function LeadRequestForm({
   return (
     <section aria-labelledby="lead-form-heading" className="lead-form-section">
       <div className="lead-form-heading">
-        <span className="eyebrow">Следующий шаг · DEMO</span>
+        <span className="eyebrow">Следующий шаг{isDemoProduct ? " · DEMO" : ""}</span>
         <h3 id="lead-form-heading">Заявка на замер</h3>
         <p>Перед отправкой проверьте комплектацию и укажите удобный адрес.</p>
       </div>

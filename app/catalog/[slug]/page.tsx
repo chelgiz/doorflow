@@ -32,6 +32,7 @@ const specificationLabels: Record<string, string> = {
   locks: "Замки",
   weight: "Вес",
   warrantyYears: "Гарантия",
+  series: "Серия",
 };
 
 function formatAttribute(key: string, value: string | number | boolean) {
@@ -73,7 +74,20 @@ async function ProductPageContent({ params }: ProductPageProps) {
     ? demoStorePricing.rules
     : (await getQuoteSource(slug))?.pricing.rules;
   if (!pricingRules) notFound();
-  const specifications = Object.entries(product.attributes);
+  // Internal keys that must not reach the customer-facing specification list.
+  const hiddenSpecificationKeys = new Set(["seriesLabel", "variant"]);
+  const specifications: Array<[string, string | number | boolean]> = Object.entries(
+    product.attributes,
+  )
+    .filter(([key]) => !hiddenSpecificationKeys.has(key))
+    .map(([key, value]) => {
+      // `series` stores a machine value next to its Russian label; show the label.
+      const seriesLabel = product.attributes.seriesLabel;
+      if (key === "series" && typeof seriesLabel === "string" && seriesLabel.length > 0) {
+        return [key, seriesLabel];
+      }
+      return [key, value];
+    });
 
   return (
     <StorefrontTheme configuration={configuration}>

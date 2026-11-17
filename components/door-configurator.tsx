@@ -47,6 +47,8 @@ export function DoorConfigurator({
   pricingRules,
   isDemoProduct,
 }: DoorConfiguratorProps) {
+  // Demo wording must never be shown for a real store's product.
+  const demoLabel = isDemoProduct ? " · DEMO" : "";
   const [quantity, setQuantity] = useState(1);
   const [selections, setSelections] = useState(() => makeDefaultSelections(optionGroups));
   const [services, setServices] = useState<Record<string, number>>({});
@@ -143,9 +145,13 @@ export function DoorConfigurator({
   return (
     <section aria-labelledby="configurator-heading" className="configurator">
       <div className="configurator-heading">
-        <span className="eyebrow">Комплектация · DEMO</span>
+        <span className="eyebrow">Комплектация{demoLabel}</span>
         <h2 id="configurator-heading">Соберите свой вариант</h2>
-        <p>Стоимость рассчитывается сервером только из доступных демо-опций.</p>
+        <p>
+          {isDemoProduct
+            ? "Стоимость рассчитывается сервером только из доступных демо-опций."
+            : "Стоимость рассчитывается сервером из выбранной комплектации."}
+        </p>
       </div>
 
       <div className="configurator-quantity">
@@ -189,8 +195,8 @@ export function DoorConfigurator({
                         <strong>{option.label}</strong>
                         <small>
                           {option.priceMinor === 0
-                            ? "Без доплаты · DEMO"
-                            : `+${formatMoney(option.priceMinor)} · DEMO`}
+                            ? `Без доплаты${demoLabel}`
+                            : `+${formatMoney(option.priceMinor)}${demoLabel}`}
                         </small>
                       </span>
                     </label>
@@ -202,7 +208,7 @@ export function DoorConfigurator({
       </div>
 
       <fieldset className="configurator-group service-group">
-        <legend>Доставка и работы · DEMO</legend>
+        <legend>Доставка и работы{demoLabel}</legend>
         <div className="configurator-options">
           {pricingRules.map((rule) => {
             const selectedQuantity = services[rule.id] ?? 0;
@@ -221,8 +227,8 @@ export function DoorConfigurator({
                     <strong>{rule.label}</strong>
                     <small>
                       {rule.method === "percentage"
-                        ? `${rule.basisPoints / 100}% от комплектации · DEMO`
-                        : `+${formatMoney(rule.priceMinor)}${rule.method === "per-door" ? " за дверь" : ""} · DEMO`}
+                        ? `${rule.basisPoints / 100}% от комплектации${demoLabel}`
+                        : `+${formatMoney(rule.priceMinor)}${rule.method === "per-door" ? " за дверь" : ""}${demoLabel}`}
                     </small>
                   </span>
                 </label>
@@ -271,7 +277,7 @@ export function DoorConfigurator({
           <div className="quote-result-heading">
             <span>
               <Check aria-hidden="true" />
-              Расчёт с сервера · DEMO
+              Расчёт с сервера{demoLabel}
             </span>
             <small>{quantity} шт. · {productName}</small>
           </div>
@@ -287,15 +293,24 @@ export function DoorConfigurator({
             ))}
           </dl>
           <div className="quote-total">
-            <span>Предварительный итог · DEMO</span>
+            <span>Предварительный итог{demoLabel}</span>
             <strong>{formatMoney(quote.totalPriceMinor)}</strong>
           </div>
-          <p>Условная сумма для проверки интерфейса. Не оферта и не цена магазина.</p>
+          <p>
+            {isDemoProduct
+              ? "Условная сумма для проверки интерфейса. Не оферта и не цена магазина."
+              : "Итог рассчитан сервером по выбранной комплектации."}
+          </p>
         </div>
-      ) : (
+      ) : isDemoProduct ? (
         <p className="configurator-note">
           Базовая цена-пример: {formatMoney(basePriceMinor)} · DEMO. Итог появится
           после серверного расчёта.
+        </p>
+      ) : (
+        <p className="configurator-note">
+          Базовая цена: {formatMoney(basePriceMinor)}. Итог появится после серверного
+          расчёта.
         </p>
       )}
 
