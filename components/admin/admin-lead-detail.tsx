@@ -48,6 +48,7 @@ export type LeadDetailData = {
   }>;
   order: { id: string; status: string; totalMinor: number; currency: string } | null;
   assignedManager: { id: string; email: string } | null;
+  firstContactAt: string | null;
 };
 
 export function AdminLeadDetail({
@@ -57,6 +58,8 @@ export function AdminLeadDetail({
   managers,
   customerHistory,
   canAssign,
+  canWrite,
+  firstContactOverdue,
 }: {
   id: string;
   initialLead: LeadDetailData;
@@ -64,6 +67,8 @@ export function AdminLeadDetail({
   managers: Array<{ id: string; email: string }>;
   customerHistory: CustomerHistory;
   canAssign: boolean;
+  canWrite: boolean;
+  firstContactOverdue: boolean;
 }) {
   const [lead, setLead] = useState<LeadDetailData>(initialLead);
   const [status, setStatus] = useState(initialLead.status);
@@ -73,6 +78,29 @@ export function AdminLeadDetail({
   const [assignedManagerId, setAssignedManagerId] = useState(initialLead.assignedManager?.id ?? "");
   const [assignError, setAssignError] = useState("");
   const [assignMessage, setAssignMessage] = useState("");
+  const [contactError, setContactError] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+
+  async function recordFirstContact() {
+    setContactError("");
+    setContactMessage("");
+    try {
+      const response = await fetch(`/api/admin/leads/${id}/contact`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Не удалось зафиксировать контакт");
+      const refreshedResponse = await fetch(`/api/admin/leads/${id}`, { cache: "no-store" });
+      const refreshed = await refreshedResponse.json();
+      if (!refreshedResponse.ok) throw new Error(refreshed.error ?? "Не удалось обновить карточку");
+      setLead(refreshed.lead);
+      setContactMessage(result.message ?? "Первый контакт зафиксирован");
+    } catch (caught) {
+      setContactError(caught instanceof Error ? caught.message : "Не удалось зафиксировать контакт");
+    }
+  }
 
   async function saveAssignment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -156,6 +184,27 @@ export function AdminLeadDetail({
         )}
       </section>
       <div className="admin-stack">
+        <section className="admin-panel">
+          <h2>Первый контакт (SLA 2 ч)</h2>
+          {lead.firstContactAt ? (
+            <p className="admin-success" role="status">
+              Зафиксирован: {new Date(lead.firstContactAt).toLocaleString("ru-RU")}
+            </p>
+          ) : firstContactOverdue ? (
+            <p className="admin-error" role="alert">
+              Просрочен: с момента заявки прошло больше 2 часов, контакт не зафиксирован.
+            </p>
+          ) : (
+            <p className="admin-muted">Ожидает первого контакта — SLA 2 часа ещё не истёк.</p>
+          )}
+          {canWrite && !lead.firstContactAt && (
+            <button className="button button-accent" onClick={recordFirstContact} type="button">
+              Зафиксировать первый контакт
+            </button>
+          )}
+          {contactError && <p className="admin-error" role="alert">{contactError}</p>}
+          {contactMessage && <p className="admin-success" role="status">{contactMessage}</p>}
+        </section>
         <section className="admin-panel">
           <h2>Ответственный менеджер</h2>
           <p className="admin-muted">

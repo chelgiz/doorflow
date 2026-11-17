@@ -28,6 +28,8 @@ export type LeadSummary = {
   createdAt: string;
   product: { name: string; model: string; slug: string } | null;
   assignedManager: { id: string; email: string } | null;
+  firstContactAt: string | null;
+  firstContactOverdue: boolean;
 };
 
 function statusLabel(status: string) {
@@ -94,7 +96,10 @@ export function AdminLeads({
                 <td>{lead.product ? `${lead.product.name} · ${lead.product.model}` : "Не указана"}</td>
                 <td>{lead.assignedManager ? lead.assignedManager.email : <span className="admin-muted">Не назначен</span>}</td>
                 <td>{statusLabel(lead.status)}</td>
-                <td>{new Date(lead.createdAt).toLocaleString("ru-RU")}</td>
+                <td>
+                  {new Date(lead.createdAt).toLocaleString("ru-RU")}
+                  {lead.firstContactOverdue && <span className="admin-sla-badge">SLA просрочен</span>}
+                </td>
               </tr>
             ))}
             {leads.length === 0 && !error && <tr><td colSpan={6}>По заданным условиям заявок нет.</td></tr>}
