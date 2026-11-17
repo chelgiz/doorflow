@@ -70,6 +70,7 @@ export function AdminLeadDetail({
   canWrite,
   firstContactOverdue,
   actionOverdue,
+  followUpDue,
 }: {
   id: string;
   initialLead: LeadDetailData;
@@ -80,6 +81,7 @@ export function AdminLeadDetail({
   canWrite: boolean;
   firstContactOverdue: boolean;
   actionOverdue: boolean;
+  followUpDue: boolean;
 }) {
   const [lead, setLead] = useState<LeadDetailData>(initialLead);
   const [status, setStatus] = useState(initialLead.status);
@@ -232,6 +234,12 @@ export function AdminLeadDetail({
       <div className="admin-stack">
         <section className="admin-panel">
           <h2>Следующее действие</h2>
+          {followUpDue && (
+            <p className="admin-muted" role="status">
+              Пора связаться: с первого контакта прошло больше трёх дней, статус не менялся.
+              Запланируйте повторное касание ниже.
+            </p>
+          )}
           {lead.nextActionAt ? (
             <p className={actionOverdue ? "admin-error" : "admin-muted"} role={actionOverdue ? "alert" : undefined}>
               Запланировано: {new Date(lead.nextActionAt).toLocaleString("ru-RU")}

@@ -3,6 +3,7 @@ import { requireAdminPage } from "@/lib/admin/pages";
 import { leadVisibilityFilter } from "@/lib/admin/auth";
 import { isFirstContactOverdue } from "@/lib/admin/lead-sla";
 import { isActionOverdue } from "@/lib/admin/lead-actions";
+import { needsFollowUp } from "@/lib/admin/lead-followup";
 import { getPrismaClient } from "@/lib/db/prisma";
 
 export default async function AdminLeadsPage() {
@@ -33,10 +34,22 @@ export default async function AdminLeadsPage() {
     }),
     prisma.lead.count({ where }),
   ]);
+  const leadIds = leads.map((lead) => lead.id);
+  const lastChanges = leadIds.length
+    ? await prisma.leadStatusHistory.groupBy({
+        by: ["leadId"],
+        where: { leadId: { in: leadIds } },
+        _max: { changedAt: true },
+      })
+    : [];
+  const lastChangeByLead = new Map(
+    lastChanges.map((row) => [row.leadId, row._max.changedAt ?? null]),
+  );
   const decoratedLeads = leads.map((lead) => ({
     ...lead,
     firstContactOverdue: isFirstContactOverdue(lead),
     actionOverdue: isActionOverdue(lead),
+    followUpDue: needsFollowUp({ ...lead, lastStatusChangeAt: lastChangeByLead.get(lead.id) ?? null }),
   }));
   return (
     <>

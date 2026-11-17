@@ -34,6 +34,7 @@ export type LeadSummary = {
   nextActionAt: string | null;
   actionOverdue: boolean;
   rejectionReason: string | null;
+  followUpDue: boolean;
 };
 
 function statusLabel(status: string) {
@@ -92,6 +93,7 @@ export function AdminLeads({
             <option value="all">Все заявки</option>
             <option value="first-contact-overdue">Нет первого контакта (SLA 2 ч)</option>
             <option value="action-overdue">Просрочено действие</option>
+            <option value="follow-up-due">Пора связаться (3 дня)</option>
           </select>
         </label>
         <button className="admin-button-secondary" type="submit">Найти</button>
@@ -117,6 +119,7 @@ export function AdminLeads({
                   {new Date(lead.createdAt).toLocaleString("ru-RU")}
                   {lead.firstContactOverdue && <span className="admin-sla-badge">SLA просрочен</span>}
                   {lead.actionOverdue && <span className="admin-action-badge">Действие просрочено</span>}
+                  {lead.followUpDue && <span className="admin-followup-badge">Пора связаться</span>}
                 </td>
               </tr>
             ))}

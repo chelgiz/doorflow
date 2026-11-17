@@ -70,7 +70,7 @@
 
 ```bash
 export DOORFLOW_TEST_DATABASE_URL='postgresql://doorflow:doorflow_local_only@127.0.0.1:54329/doorflow_test?schema=public'
-npm test        # 82 passed, 22 файла, 0 skipped (обновляется на каждом шаге)
+npm test        # 92 passed, 24 файла, 0 skipped (обновляется на каждом шаге)
 npm run typecheck
 npm run lint
 npm run build

@@ -3068,3 +3068,17 @@ a {
   font-weight: 600;
   vertical-align: middle;
 }
+
+/* Follow-up-due badge (CRM step 2.5) */
+.admin-followup-badge {
+  display: inline-block;
+  margin-left: 8px;
+  border: 1px solid color-mix(in srgb, #1d4ed8 32%, transparent);
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: color-mix(in srgb, #1d4ed8 10%, #ffffff);
+  color: #1e40af;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
