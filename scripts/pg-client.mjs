@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { closeSync, createReadStream, openSync } from "node:fs";
+import { closeSync, openSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import pg from "pg";
 import { getClientConnectionString } from "./postgres-connection.mjs";
@@ -102,17 +102,19 @@ function runCaptured(command, args, env) {
 
 async function runWithStreams({ command, args, env, stdoutPath, stdinPath, secrets = [] }) {
   let stdoutHandle;
+  let stdinHandle;
   if (stdoutPath) {
     await rm(stdoutPath, { force: true });
     stdoutHandle = openSync(stdoutPath, "w", 0o600);
   }
-
-  const stdinStream = stdinPath ? createReadStream(stdinPath) : "ignore";
+  // A file descriptor is required here: `spawn` rejects a not-yet-opened
+  // fs.ReadStream because the descriptor is still null when stdio is validated.
+  if (stdinPath) stdinHandle = openSync(stdinPath, "r");
 
   try {
     await new Promise((resolve, reject) => {
       const child = spawn(command, args, {
-        stdio: [stdinStream, stdoutHandle ?? "ignore", "pipe"],
+        stdio: [stdinHandle ?? "ignore", stdoutHandle ?? "ignore", "pipe"],
         env,
       });
       let stderr = "";
@@ -127,7 +129,7 @@ async function runWithStreams({ command, args, env, stdoutPath, stdinPath, secre
     });
   } finally {
     if (stdoutHandle !== undefined) closeSync(stdoutHandle);
-    if (stdinStream !== "ignore") stdinStream.destroy();
+    if (stdinHandle !== undefined) closeSync(stdinHandle);
   }
 }
 
