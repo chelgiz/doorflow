@@ -3,10 +3,11 @@ import { FIRST_CONTACT_SLA_MS, firstContactDueAt, hoursSinceCreation, isFirstCon
 
 const NOW = new Date("2026-11-17T12:00:00.000Z");
 
-function lead(createdMinutesAgo: number, contactedAt: Date | null = null) {
+function lead(createdMinutesAgo: number, contactedAt: Date | null = null, status = "NEW") {
   return {
     createdAt: new Date(NOW.getTime() - createdMinutesAgo * 60_000),
     firstContactAt: contactedAt,
+    status,
   };
 }
 
@@ -32,6 +33,17 @@ describe("first-contact SLA", () => {
 
   it("is never overdue once the first contact is recorded", () => {
     expect(isFirstContactOverdue(lead(600, NOW), NOW)).toBe(false);
+  });
+
+  it("is never overdue for closed leads", () => {
+    expect(isFirstContactOverdue(lead(600, null, "SALE"), NOW)).toBe(false);
+    expect(isFirstContactOverdue(lead(600, null, "REJECTED"), NOW)).toBe(false);
+    expect(isFirstContactOverdue(lead(600, null, "COMPLETED"), NOW)).toBe(false);
+  });
+
+  it("is still overdue for open leads without a contact", () => {
+    expect(isFirstContactOverdue(lead(600, null, "NEW"), NOW)).toBe(true);
+    expect(isFirstContactOverdue(lead(600, null, "MEASURED"), NOW)).toBe(true);
   });
 
   it("reports elapsed whole hours, never negative", () => {

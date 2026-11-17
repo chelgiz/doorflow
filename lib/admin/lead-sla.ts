@@ -6,9 +6,12 @@
  */
 export const FIRST_CONTACT_SLA_MS = 2 * 60 * 60 * 1000;
 
+import { isLeadClosed } from "@/lib/admin/lead-actions";
+
 export type SlaLead = {
   createdAt: Date;
   firstContactAt: Date | null;
+  status: string;
 };
 
 export function firstContactDueAt(createdAt: Date): Date {
@@ -17,6 +20,9 @@ export function firstContactDueAt(createdAt: Date): Date {
 
 export function isFirstContactOverdue(lead: SlaLead, now: Date = new Date()): boolean {
   if (lead.firstContactAt !== null) return false;
+  // Closed leads are not expected to be contacted any more (same rule as for
+  // the planned action), so they never count as SLA-overdue.
+  if (isLeadClosed(lead.status)) return false;
   return now.getTime() - lead.createdAt.getTime() > FIRST_CONTACT_SLA_MS;
 }
 

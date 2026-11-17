@@ -47,7 +47,11 @@ export async function GET(request: Request) {
     storeId: authorization.actor.storeId,
     ...leadVisibilityFilter(authorization.actor),
     ...(sla.data === "first-contact-overdue"
-      ? { firstContactAt: null, createdAt: { lt: new Date(Date.now() - FIRST_CONTACT_SLA_MS) } }
+      ? {
+          firstContactAt: null,
+          createdAt: { lt: new Date(Date.now() - FIRST_CONTACT_SLA_MS) },
+          status: { notIn: [...CLOSED_LEAD_STATUSES] as never },
+        }
       : {}),
     ...(sla.data === "action-overdue"
       ? { nextActionAt: { lt: new Date() }, status: { notIn: [...CLOSED_LEAD_STATUSES] as never } }
