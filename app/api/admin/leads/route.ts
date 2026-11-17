@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { authorizeAdmin } from "@/lib/admin/auth";
+import { authorizeAdmin, leadVisibilityFilter } from "@/lib/admin/auth";
 import { getPrismaClient } from "@/lib/db/prisma";
 import { jsonResponse } from "@/lib/http/json";
 import { LeadStatus } from "@/generated/prisma/client";
@@ -22,6 +22,7 @@ export async function GET(request: Request) {
 
   const where = {
     storeId: authorization.actor.storeId,
+    ...leadVisibilityFilter(authorization.actor),
     ...(status.data === "all" ? {} : { status: status.data }),
     ...(search.data
       ? {
@@ -49,6 +50,7 @@ export async function GET(request: Request) {
         address: true,
         source: true,
         utmSource: true,
+        assignedManager: { select: { id: true, email: true } },
         createdAt: true,
         product: { select: { name: true, model: true, slug: true } },
       },

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AdminLeadDetail } from "@/components/admin/admin-lead-detail";
 import { notFound } from "next/navigation";
 import { requireAdminPage } from "@/lib/admin/pages";
+import { leadVisibilityFilter, roleCan } from "@/lib/admin/auth";
 import { getPrismaClient } from "@/lib/db/prisma";
 import { toSafeMinorUnits } from "@/lib/admin/http";
 import { getCustomerHistory } from "@/lib/admin/customer-history";
@@ -14,7 +15,7 @@ export default async function AdminLeadDetailPage({
   const prisma = getPrismaClient();
   const [lead, measurers, managers] = await Promise.all([
     prisma.lead.findFirst({
-    where: { id, storeId: actor.storeId },
+    where: { id, storeId: actor.storeId, ...leadVisibilityFilter(actor) },
     include: {
       product: { select: { id: true, name: true, model: true, slug: true } },
       statusHistory: {
@@ -30,6 +31,7 @@ export default async function AdminLeadDetailPage({
         include: { assignedMeasurer: { select: { id: true, email: true } } },
       },
       order: { select: { id: true, status: true, totalMinor: true, currency: true } },
+      assignedManager: { select: { id: true, email: true } },
     },
     }),
     prisma.adminUser.findMany({
@@ -53,6 +55,7 @@ export default async function AdminLeadDetailPage({
         <h1>Заявка</h1>
       </div>
       <AdminLeadDetail
+        canAssign={roleCan(actor.role, "leads:assign")}
         id={id}
         initialLead={{
           ...lead,

@@ -1,11 +1,12 @@
 import { AdminLeads } from "@/components/admin/admin-leads";
 import { requireAdminPage } from "@/lib/admin/pages";
+import { leadVisibilityFilter } from "@/lib/admin/auth";
 import { getPrismaClient } from "@/lib/db/prisma";
 
 export default async function AdminLeadsPage() {
   const actor = await requireAdminPage("leads:read");
   const prisma = getPrismaClient();
-  const where = { storeId: actor.storeId };
+  const where = { storeId: actor.storeId, ...leadVisibilityFilter(actor) };
   const [leads, total] = await prisma.$transaction([
     prisma.lead.findMany({
       where,
@@ -22,6 +23,7 @@ export default async function AdminLeadsPage() {
         utmSource: true,
         createdAt: true,
         product: { select: { name: true, model: true, slug: true } },
+        assignedManager: { select: { id: true, email: true } },
       },
     }),
     prisma.lead.count({ where }),

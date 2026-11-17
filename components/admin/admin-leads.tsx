@@ -27,6 +27,7 @@ export type LeadSummary = {
   utmSource: string | null;
   createdAt: string;
   product: { name: string; model: string; slug: string } | null;
+  assignedManager: { id: string; email: string } | null;
 };
 
 function statusLabel(status: string) {
@@ -84,18 +85,19 @@ export function AdminLeads({
       {error && <p className="admin-error" role="alert">{error}</p>}
       <div className="admin-table-wrap">
         <table className="admin-table">
-          <thead><tr><th>Клиент</th><th>Обращение</th><th>Модель</th><th>Статус</th><th>Получено</th></tr></thead>
+          <thead><tr><th>Клиент</th><th>Обращение</th><th>Модель</th><th>Ответственный</th><th>Статус</th><th>Получено</th></tr></thead>
           <tbody>
             {leads.map((lead) => (
               <tr key={lead.id}>
                 <td><Link className="admin-record-link" href={`/admin/leads/${lead.id}`}>{lead.customerName}</Link><small>{lead.phone}</small></td>
                 <td>{lead.type === "ORDER" ? "Заказ" : "Замер"}{lead.source ? <small>{lead.source}</small> : null}</td>
                 <td>{lead.product ? `${lead.product.name} · ${lead.product.model}` : "Не указана"}</td>
+                <td>{lead.assignedManager ? lead.assignedManager.email : <span className="admin-muted">Не назначен</span>}</td>
                 <td>{statusLabel(lead.status)}</td>
                 <td>{new Date(lead.createdAt).toLocaleString("ru-RU")}</td>
               </tr>
             ))}
-            {leads.length === 0 && !error && <tr><td colSpan={5}>По заданным условиям заявок нет.</td></tr>}
+            {leads.length === 0 && !error && <tr><td colSpan={6}>По заданным условиям заявок нет.</td></tr>}
           </tbody>
         </table>
       </div>

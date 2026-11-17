@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { authorizeAdmin, isSameOriginRequest } from "@/lib/admin/auth";
+import { authorizeAdmin, isSameOriginRequest, leadVisibilityFilter } from "@/lib/admin/auth";
 import { adminDatabaseError, toSafeMinorUnits } from "@/lib/admin/http";
 import { getPrismaClient } from "@/lib/db/prisma";
 import { jsonResponse, readJsonRequest } from "@/lib/http/json";
@@ -20,7 +20,11 @@ export async function GET(_request: Request, { params }: RouteContext) {
   const parsedId = databaseIdSchema.safeParse(id);
   if (!parsedId.success) return jsonResponse({ error: "Invalid lead id" }, 400);
   const lead = await getPrismaClient().lead.findFirst({
-    where: { id: parsedId.data, storeId: authorization.actor.storeId },
+    where: {
+      id: parsedId.data,
+      storeId: authorization.actor.storeId,
+      ...leadVisibilityFilter(authorization.actor),
+    },
     include: {
       product: { select: { id: true, name: true, model: true, slug: true } },
       statusHistory: {
@@ -71,7 +75,11 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     const updated = await prisma.$transaction(async (transaction) => {
       const current = await transaction.lead.findFirst({
-        where: { id: parsedId.data, storeId: authorization.actor.storeId },
+        where: {
+          id: parsedId.data,
+          storeId: authorization.actor.storeId,
+          ...leadVisibilityFilter(authorization.actor),
+        },
         select: { id: true, status: true },
       });
       if (!current) return null;

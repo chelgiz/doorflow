@@ -16,6 +16,7 @@ export type AdminPermission =
   | "catalog:write"
   | "leads:read"
   | "leads:write"
+  | "leads:assign"
   | "settings:read"
   | "settings:write"
   | "users:read"
@@ -38,6 +39,7 @@ const rolePermissions: Record<AdminRole, ReadonlySet<AdminPermission>> = {
     "catalog:write",
     "leads:read",
     "leads:write",
+    "leads:assign",
     "settings:read",
     "settings:write",
     "users:read",
@@ -50,6 +52,7 @@ const rolePermissions: Record<AdminRole, ReadonlySet<AdminPermission>> = {
     "catalog:write",
     "leads:read",
     "leads:write",
+    "leads:assign",
     "settings:read",
     "settings:write",
     "operations:read",
@@ -65,6 +68,14 @@ const rolePermissions: Record<AdminRole, ReadonlySet<AdminPermission>> = {
   MEASURER: new Set(["measurements:own"]),
   INSTALLER: new Set(["installations:own"]),
 };
+
+/**
+ * A MANAGER sees only leads assigned to them; OWNER/ADMIN see the whole store.
+ * Returns a Prisma filter fragment to merge into lead queries.
+ */
+export function leadVisibilityFilter(actor: AdminActor) {
+  return actor.role === "MANAGER" ? { assignedManagerId: actor.userId } : {};
+}
 
 export function roleCan(role: AdminRole, permission: AdminPermission) {
   return rolePermissions[role].has(permission);

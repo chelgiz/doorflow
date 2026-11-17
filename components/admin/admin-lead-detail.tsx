@@ -47,6 +47,7 @@ export type LeadDetailData = {
     assignedMeasurer: { id: string; email: string } | null;
   }>;
   order: { id: string; status: string; totalMinor: number; currency: string } | null;
+  assignedManager: { id: string; email: string } | null;
 };
 
 export function AdminLeadDetail({
@@ -55,18 +56,50 @@ export function AdminLeadDetail({
   measurers,
   managers,
   customerHistory,
+  canAssign,
 }: {
   id: string;
   initialLead: LeadDetailData;
   measurers: Array<{ id: string; email: string }>;
   managers: Array<{ id: string; email: string }>;
   customerHistory: CustomerHistory;
+  canAssign: boolean;
 }) {
   const [lead, setLead] = useState<LeadDetailData>(initialLead);
   const [status, setStatus] = useState(initialLead.status);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [assignedManagerId, setAssignedManagerId] = useState(initialLead.assignedManager?.id ?? "");
+  const [assignError, setAssignError] = useState("");
+  const [assignMessage, setAssignMessage] = useState("");
+
+  async function saveAssignment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAssignError("");
+    setAssignMessage("");
+    try {
+      const response = await fetch(`/api/admin/leads/${id}/assign`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ managerId: assignedManagerId || null }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Не удалось назначить менеджера");
+      const refreshedResponse = await fetch(`/api/admin/leads/${id}`, { cache: "no-store" });
+      const refreshed = await refreshedResponse.json();
+      if (!refreshedResponse.ok) throw new Error(refreshed.error ?? "Не удалось обновить карточку");
+      setLead(refreshed.lead);
+      setAssignedManagerId(refreshed.lead.assignedManager?.id ?? "");
+      setAssignMessage(
+        refreshed.lead.assignedManager
+          ? `Ответственный: ${refreshed.lead.assignedManager.email}`
+          : "Ответственный снят",
+      );
+    } catch (caught) {
+      setAssignError(caught instanceof Error ? caught.message : "Не удалось назначить менеджера");
+    }
+  }
 
   async function saveStatus(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,6 +156,31 @@ export function AdminLeadDetail({
         )}
       </section>
       <div className="admin-stack">
+        <section className="admin-panel">
+          <h2>Ответственный менеджер</h2>
+          <p className="admin-muted">
+            {lead.assignedManager
+              ? `Назначен: ${lead.assignedManager.email}`
+              : "Ответственный не назначен. Менеджеры видят только назначенные им заявки."}
+          </p>
+          {canAssign ? (
+            <form className="admin-stack" onSubmit={saveAssignment}>
+              <label>Менеджер
+                <select onChange={(event) => setAssignedManagerId(event.target.value)} value={assignedManagerId}>
+                  <option value="">Не назначен</option>
+                  {managers.map((manager) => (
+                    <option key={manager.id} value={manager.id}>{manager.email}</option>
+                  ))}
+                </select>
+              </label>
+              {assignError && <p className="admin-error" role="alert">{assignError}</p>}
+              {assignMessage && <p className="admin-success" role="status">{assignMessage}</p>}
+              <button className="button button-accent" type="submit">Сохранить ответственного</button>
+            </form>
+          ) : (
+            <p className="admin-muted">Назначать ответственного может владелец или администратор.</p>
+          )}
+        </section>
         <section className="admin-panel">
           <h2>Статус заявки</h2>
           <form className="admin-stack" onSubmit={saveStatus}>

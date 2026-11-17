@@ -162,6 +162,7 @@ model AdminUser {
   createdInstallations  Installation[] @relation("InstallationCreator")
   customerActivities CustomerActivity[]
   operationAudits OperationAudit[]
+  assignedLeads  Lead[]            @relation("LeadAssignee")
   lastLoginAt   DateTime?           @db.Timestamptz(3)
   createdAt     DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime            @updatedAt @db.Timestamptz(3)
@@ -346,12 +347,15 @@ model Lead {
   measurements          Measurement[]
   order                 Order?
   customerActivities    CustomerActivity[]
+  assignedManagerId     String?             @db.Uuid
+  assignedManager       AdminUser?          @relation("LeadAssignee", fields: [assignedManagerId], references: [id], onDelete: SetNull)
   createdAt             DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt             DateTime            @updatedAt @db.Timestamptz(3)
 
   @@index([storeId, status, createdAt])
   @@index([storeId, phone])
   @@index([productId])
+  @@index([storeId, assignedManagerId, status])
   @@unique([storeId, idempotencyKey])
 }
 
