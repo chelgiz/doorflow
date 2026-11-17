@@ -3054,3 +3054,17 @@ a {
   letter-spacing: 0.01em;
   vertical-align: middle;
 }
+
+/* Action-overdue badge (CRM step 2.3) */
+.admin-action-badge {
+  display: inline-block;
+  margin-left: 8px;
+  border: 1px solid color-mix(in srgb, #8a5a00 35%, transparent);
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: color-mix(in srgb, #b7791f 12%, #ffffff);
+  color: #7a4f00;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}

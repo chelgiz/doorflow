@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireAdminPage } from "@/lib/admin/pages";
 import { leadVisibilityFilter, roleCan } from "@/lib/admin/auth";
 import { isFirstContactOverdue } from "@/lib/admin/lead-sla";
+import { isActionOverdue } from "@/lib/admin/lead-actions";
 import { getPrismaClient } from "@/lib/db/prisma";
 import { toSafeMinorUnits } from "@/lib/admin/http";
 import { getCustomerHistory } from "@/lib/admin/customer-history";
@@ -59,11 +60,13 @@ export default async function AdminLeadDetailPage({
         canAssign={roleCan(actor.role, "leads:assign")}
         canWrite={roleCan(actor.role, "leads:write")}
         firstContactOverdue={isFirstContactOverdue(lead)}
+        actionOverdue={isActionOverdue(lead)}
         id={id}
         initialLead={{
           ...lead,
           createdAt: lead.createdAt.toISOString(),
           firstContactAt: lead.firstContactAt ? lead.firstContactAt.toISOString() : null,
+          nextActionAt: lead.nextActionAt ? lead.nextActionAt.toISOString() : null,
           personalDataConsentAt: lead.personalDataConsentAt.toISOString(),
           statusHistory: lead.statusHistory.map((entry) => ({
             ...entry,

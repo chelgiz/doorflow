@@ -350,6 +350,7 @@ model Lead {
   assignedManagerId     String?             @db.Uuid
   assignedManager       AdminUser?          @relation("LeadAssignee", fields: [assignedManagerId], references: [id], onDelete: SetNull)
   firstContactAt        DateTime?           @db.Timestamptz(3)
+  nextActionAt          DateTime?           @db.Timestamptz(3)
   createdAt             DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt             DateTime            @updatedAt @db.Timestamptz(3)
 
@@ -358,6 +359,7 @@ model Lead {
   @@index([productId])
   @@index([storeId, assignedManagerId, status])
   @@index([storeId, firstContactAt])
+  @@index([storeId, nextActionAt])
   @@unique([storeId, idempotencyKey])
 }
 

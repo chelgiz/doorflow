@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { authorizeAdmin, leadVisibilityFilter } from "@/lib/admin/auth";
 import { FIRST_CONTACT_SLA_MS, isFirstContactOverdue } from "@/lib/admin/lead-sla";
+import { CLOSED_LEAD_STATUSES, isActionOverdue } from "@/lib/admin/lead-actions";
 import { getPrismaClient } from "@/lib/db/prisma";
 import { jsonResponse } from "@/lib/http/json";
 import { LeadStatus } from "@/generated/prisma/client";
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
     .safeParse(url.searchParams.get("status") ?? "all");
   const page = z.coerce.number().int().min(1).max(10_000)
     .safeParse(url.searchParams.get("page") ?? "1");
-  const sla = z.enum(["all", "first-contact-overdue"])
+  const sla = z.enum(["all", "first-contact-overdue", "action-overdue"])
     .safeParse(url.searchParams.get("sla") ?? "all");
   if (!search.success || !status.success || !page.success || !sla.success) {
     return jsonResponse({ error: "Invalid lead filters" }, 400);
@@ -28,6 +29,9 @@ export async function GET(request: Request) {
     ...leadVisibilityFilter(authorization.actor),
     ...(sla.data === "first-contact-overdue"
       ? { firstContactAt: null, createdAt: { lt: new Date(Date.now() - FIRST_CONTACT_SLA_MS) } }
+      : {}),
+    ...(sla.data === "action-overdue"
+      ? { nextActionAt: { lt: new Date() }, status: { notIn: [...CLOSED_LEAD_STATUSES] as never } }
       : {}),
     ...(status.data === "all" ? {} : { status: status.data }),
     ...(search.data
@@ -58,6 +62,7 @@ export async function GET(request: Request) {
         utmSource: true,
         assignedManager: { select: { id: true, email: true } },
         firstContactAt: true,
+        nextActionAt: true,
         createdAt: true,
         product: { select: { name: true, model: true, slug: true } },
       },
@@ -65,7 +70,11 @@ export async function GET(request: Request) {
     prisma.lead.count({ where }),
   ]);
   return jsonResponse({
-    leads: leads.map((lead) => ({ ...lead, firstContactOverdue: isFirstContactOverdue(lead) })),
+    leads: leads.map((lead) => ({
+      ...lead,
+      firstContactOverdue: isFirstContactOverdue(lead),
+      actionOverdue: isActionOverdue(lead),
+    })),
     total,
     page: page.data,
     pageSize: 30,

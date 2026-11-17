@@ -30,6 +30,8 @@ export type LeadSummary = {
   assignedManager: { id: string; email: string } | null;
   firstContactAt: string | null;
   firstContactOverdue: boolean;
+  nextActionAt: string | null;
+  actionOverdue: boolean;
 };
 
 function statusLabel(status: string) {
@@ -46,6 +48,7 @@ export function AdminLeads({
   const [leads, setLeads] = useState<LeadSummary[]>(initialLeads);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [sla, setSla] = useState("all");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(initialTotal);
   const [error, setError] = useState("");
@@ -53,12 +56,12 @@ export function AdminLeads({
   function changeSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPage(1);
-    void loadLeads(search, status, 1);
+    void loadLeads(search, status, sla, 1);
   }
 
-  async function loadLeads(queryText: string, queryStatus: string, queryPage: number) {
+  async function loadLeads(queryText: string, queryStatus: string, querySla: string, queryPage: number) {
     setError("");
-    const query = new URLSearchParams({ q: queryText, status: queryStatus, page: String(queryPage) });
+    const query = new URLSearchParams({ q: queryText, status: queryStatus, sla: querySla, page: String(queryPage) });
     try {
       const response = await fetch(`/api/admin/leads?${query}`, { cache: "no-store" });
       const result = await response.json();
@@ -77,9 +80,16 @@ export function AdminLeads({
           <input onChange={(event) => setSearch(event.target.value)} value={search} />
         </label>
         <label>Статус
-          <select onChange={(event) => { setStatus(event.target.value); setPage(1); void loadLeads(search, event.target.value, 1); }} value={status}>
+          <select onChange={(event) => { setStatus(event.target.value); setPage(1); void loadLeads(search, event.target.value, sla, 1); }} value={status}>
             <option value="all">Все статусы</option>
             {statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+        <label>Просрочки
+          <select onChange={(event) => { setSla(event.target.value); setPage(1); void loadLeads(search, status, event.target.value, 1); }} value={sla}>
+            <option value="all">Все заявки</option>
+            <option value="first-contact-overdue">Нет первого контакта (SLA 2 ч)</option>
+            <option value="action-overdue">Просрочено действие</option>
           </select>
         </label>
         <button className="admin-button-secondary" type="submit">Найти</button>
@@ -99,6 +109,7 @@ export function AdminLeads({
                 <td>
                   {new Date(lead.createdAt).toLocaleString("ru-RU")}
                   {lead.firstContactOverdue && <span className="admin-sla-badge">SLA просрочен</span>}
+                  {lead.actionOverdue && <span className="admin-action-badge">Действие просрочено</span>}
                 </td>
               </tr>
             ))}
@@ -109,8 +120,8 @@ export function AdminLeads({
       <div className="admin-pagination">
         <span>{total} заявок · страница {page}</span>
         <div>
-          <button className="admin-button-secondary" disabled={page <= 1} onClick={() => { const nextPage = page - 1; setPage(nextPage); void loadLeads(search, status, nextPage); }} type="button">Назад</button>
-          <button className="admin-button-secondary" disabled={page * 30 >= total} onClick={() => { const nextPage = page + 1; setPage(nextPage); void loadLeads(search, status, nextPage); }} type="button">Далее</button>
+          <button className="admin-button-secondary" disabled={page <= 1} onClick={() => { const nextPage = page - 1; setPage(nextPage); void loadLeads(search, status, sla, nextPage); }} type="button">Назад</button>
+          <button className="admin-button-secondary" disabled={page * 30 >= total} onClick={() => { const nextPage = page + 1; setPage(nextPage); void loadLeads(search, status, sla, nextPage); }} type="button">Далее</button>
         </div>
       </div>
     </section>

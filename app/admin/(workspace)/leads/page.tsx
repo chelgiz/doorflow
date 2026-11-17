@@ -2,6 +2,7 @@ import { AdminLeads } from "@/components/admin/admin-leads";
 import { requireAdminPage } from "@/lib/admin/pages";
 import { leadVisibilityFilter } from "@/lib/admin/auth";
 import { isFirstContactOverdue } from "@/lib/admin/lead-sla";
+import { isActionOverdue } from "@/lib/admin/lead-actions";
 import { getPrismaClient } from "@/lib/db/prisma";
 
 export default async function AdminLeadsPage() {
@@ -26,6 +27,7 @@ export default async function AdminLeadsPage() {
         product: { select: { name: true, model: true, slug: true } },
         assignedManager: { select: { id: true, email: true } },
         firstContactAt: true,
+        nextActionAt: true,
       },
     }),
     prisma.lead.count({ where }),
@@ -33,6 +35,7 @@ export default async function AdminLeadsPage() {
   const decoratedLeads = leads.map((lead) => ({
     ...lead,
     firstContactOverdue: isFirstContactOverdue(lead),
+    actionOverdue: isActionOverdue(lead),
   }));
   return (
     <>
@@ -46,6 +49,7 @@ export default async function AdminLeadsPage() {
           ...lead,
           createdAt: lead.createdAt.toISOString(),
           firstContactAt: lead.firstContactAt ? lead.firstContactAt.toISOString() : null,
+          nextActionAt: lead.nextActionAt ? lead.nextActionAt.toISOString() : null,
         }))}
         initialTotal={total}
       />

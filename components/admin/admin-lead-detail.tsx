@@ -49,7 +49,14 @@ export type LeadDetailData = {
   order: { id: string; status: string; totalMinor: number; currency: string } | null;
   assignedManager: { id: string; email: string } | null;
   firstContactAt: string | null;
+  nextActionAt: string | null;
 };
+
+function toLocalInputValue(isoDate: string) {
+  const date = new Date(isoDate);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 export function AdminLeadDetail({
   id,
@@ -60,6 +67,7 @@ export function AdminLeadDetail({
   canAssign,
   canWrite,
   firstContactOverdue,
+  actionOverdue,
 }: {
   id: string;
   initialLead: LeadDetailData;
@@ -69,6 +77,7 @@ export function AdminLeadDetail({
   canAssign: boolean;
   canWrite: boolean;
   firstContactOverdue: boolean;
+  actionOverdue: boolean;
 }) {
   const [lead, setLead] = useState<LeadDetailData>(initialLead);
   const [status, setStatus] = useState(initialLead.status);
@@ -80,6 +89,36 @@ export function AdminLeadDetail({
   const [assignMessage, setAssignMessage] = useState("");
   const [contactError, setContactError] = useState("");
   const [contactMessage, setContactMessage] = useState("");
+  const [nextActionAt, setNextActionAt] = useState(
+    initialLead.nextActionAt ? toLocalInputValue(initialLead.nextActionAt) : "",
+  );
+  const [actionError, setActionError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+
+  async function saveNextAction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setActionError("");
+    setActionMessage("");
+    try {
+      const response = await fetch(`/api/admin/leads/${id}/next-action`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          nextActionAt: nextActionAt ? new Date(nextActionAt).toISOString() : null,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Не удалось сохранить напоминание");
+      const refreshedResponse = await fetch(`/api/admin/leads/${id}`, { cache: "no-store" });
+      const refreshed = await refreshedResponse.json();
+      if (!refreshedResponse.ok) throw new Error(refreshed.error ?? "Не удалось обновить карточку");
+      setLead(refreshed.lead);
+      setNextActionAt(refreshed.lead.nextActionAt ? toLocalInputValue(refreshed.lead.nextActionAt) : "");
+      setActionMessage(refreshed.lead.nextActionAt ? "Напоминание сохранено" : "Напоминание снято");
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : "Не удалось сохранить напоминание");
+    }
+  }
 
   async function recordFirstContact() {
     setContactError("");
@@ -184,6 +223,38 @@ export function AdminLeadDetail({
         )}
       </section>
       <div className="admin-stack">
+        <section className="admin-panel">
+          <h2>Следующее действие</h2>
+          {lead.nextActionAt ? (
+            <p className={actionOverdue ? "admin-error" : "admin-muted"} role={actionOverdue ? "alert" : undefined}>
+              Запланировано: {new Date(lead.nextActionAt).toLocaleString("ru-RU")}
+              {actionOverdue ? " — просрочено" : ""}
+            </p>
+          ) : (
+            <p className="admin-muted">Действие не запланировано.</p>
+          )}
+          <form className="admin-stack" onSubmit={saveNextAction}>
+            <label>Когда связаться
+              <input
+                onChange={(event) => setNextActionAt(event.target.value)}
+                type="datetime-local"
+                value={nextActionAt}
+              />
+            </label>
+            {actionError && <p className="admin-error" role="alert">{actionError}</p>}
+            {actionMessage && <p className="admin-success" role="status">{actionMessage}</p>}
+            <div className="admin-actions">
+              <button className="button button-accent" type="submit">Сохранить напоминание</button>
+              <button
+                className="admin-text-button"
+                onClick={() => setNextActionAt("")}
+                type="button"
+              >
+                Очистить
+              </button>
+            </div>
+          </form>
+        </section>
         <section className="admin-panel">
           <h2>Первый контакт (SLA 2 ч)</h2>
           {lead.firstContactAt ? (
