@@ -69,6 +69,16 @@
 себестоимость для расчёта прибыли, аналитика (нет UI), rate-limit и
 идемпотентные дубли, origin `localhost` vs `127.0.0.1`.
 
+## Импорт каталога из прайса
+
+- Прайс дилера в Excel разбирается в промежуточный JSON (openpyxl), фото
+  вытаскиваются из `xl/drawings` по якорям строк.
+- Импорт: `npx tsx scripts/import-catalog.ts --json <products.json> --photos <dir> --dry-run|--apply`.
+  Товары создаются **неопубликованными** (`isActive=false`), цена = розница
+  прайса, себестоимость = опт, характеристики — из описания.
+- Витрина принимает только категории `apartment` / `house` / `technical`
+  (см. `lib/products.ts`), категории прайса нужно предварительно сопоставить.
+
 ## Работа с БД
 
 1. Свежий бэкап: `DOORFLOW_DB_CONTAINER=doorflow-postgres-1 node scripts/backup-postgres.mjs`.
