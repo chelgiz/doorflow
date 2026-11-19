@@ -7,6 +7,12 @@ import { StorefrontTheme } from "@/components/site/storefront-theme";
 import { defaultStorefrontConfiguration } from "@/lib/storefront/config";
 import { getPublicStorefront } from "@/lib/storefront/data";
 
+export const metadata = {
+  title: "Доставка и монтаж дверей в Челябинске — цены ДверМонт",
+  description:
+    "Прайс работ: доставка по городу 1 200 ₽, монтаж 4 000 ₽, монтаж термо-двери 4 500 ₽, демонтаж, подъём, отделка откосов. Замер по городу бесплатный.",
+};
+
 const works = [
   { name: "Замер в черте города", price: "бесплатно" },
   { name: "Выезд за город", price: "60 ₽ за километр" },

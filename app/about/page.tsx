@@ -8,6 +8,12 @@ import { StorefrontTheme } from "@/components/site/storefront-theme";
 import { defaultStorefrontConfiguration } from "@/lib/storefront/config";
 import { getPublicStorefront } from "@/lib/storefront/data";
 
+export const metadata = {
+  title: "О магазине ДверМонт — стальные двери в Челябинске с 2007 года",
+  description:
+    "Стальные входные двери с установкой: бесплатный замер по городу, монтаж своими руками, оплата после установки, гарантия 1 год.",
+};
+
 export default function AboutPage() {
   return (
     <>

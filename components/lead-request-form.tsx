@@ -28,6 +28,22 @@ type LeadRequestFormProps = {
  * whole browser session, so navigating from the landing page to a product does
  * not lose `utm_source`. A later page view never overwrites stored values.
  */
+const PREFERRED_TIME_LABELS: Record<string, string> = {
+  morning: "утром (9:00–12:00)",
+  day: "днём (12:00–17:00)",
+  evening: "вечером (17:00–19:00)",
+};
+
+/** Удобное время звонка дописывается в комментарий, отдельного поля в базе нет. */
+function buildComment(formData: FormData) {
+  const parts: string[] = [];
+  const time = String(formData.get("preferredTime") ?? "any");
+  if (PREFERRED_TIME_LABELS[time]) parts.push(`Удобно звонить ${PREFERRED_TIME_LABELS[time]}`);
+  const comment = String(formData.get("comment") ?? "").trim();
+  if (comment) parts.push(comment);
+  return parts.join(". ") || undefined;
+}
+
 function resolveAttribution(): Attribution | undefined {
   const fromUrl = attributionFromSearch(window.location.search);
   const fromReferrer: Attribution = {
@@ -114,7 +130,7 @@ export function LeadRequestForm({
       name: formData.get("name"),
       phone: formData.get("phone"),
       address: formData.get("address"),
-      comment: formData.get("comment") || undefined,
+      comment: buildComment(formData),
       consent: formData.get("consent") === "on",
       website: formData.get("website") ?? "",
       attribution: resolveAttribution(),
@@ -254,6 +270,15 @@ export function LeadRequestForm({
                 />
               </label>
             ) : null}
+            <label>
+              <span>Когда удобно принять звонок</span>
+              <select defaultValue="any" name="preferredTime">
+                <option value="any">В любое время 9:00–19:00</option>
+                <option value="morning">Утром, 9:00–12:00</option>
+                <option value="day">Днём, 12:00–17:00</option>
+                <option value="evening">Вечером, 17:00–19:00</option>
+              </select>
+            </label>
             <label className="lead-field-wide">
               <span>Комментарий <small>необязательно</small></span>
               <textarea

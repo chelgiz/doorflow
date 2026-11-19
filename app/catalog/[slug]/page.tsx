@@ -51,6 +51,24 @@ type ProductPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+export async function generateMetadata({ params }: ProductPageProps) {
+  const { slug } = await params;
+  const product = await getPublicProduct(slug);
+  if (!product) return { title: "Модель не найдена — ДверМонт" };
+  const price = priceFormatter.format(product.price);
+  const title = `${product.name} — ${price} ₽ | ДверМонт`;
+  const description = `${product.description.slice(0, 150)} Доставка и монтаж по Челябинску, оплата после установки.`;
+  return {
+    title: title.slice(0, 70),
+    description: description.slice(0, 180),
+    openGraph: {
+      title: product.name,
+      description: description.slice(0, 180),
+      type: "website",
+    },
+  };
+}
+
 export function generateStaticParams() {
   return products.map(({ slug }) => ({ slug }));
 }

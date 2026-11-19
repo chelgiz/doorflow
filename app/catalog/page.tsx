@@ -12,6 +12,12 @@ import { getPublicStorefront } from "@/lib/storefront/data";
 import { getPublicCatalogProducts } from "@/lib/storefront/catalog";
 import { isDemoMode } from "@/lib/db/config";
 
+export const metadata = {
+  title: "Каталог стальных входных дверей — ДверМонт, Челябинск",
+  description:
+    "41 модель стальных входных дверей для квартиры и дома: цены, характеристики, наличие. Доставка и монтаж по Челябинску, оплата после установки.",
+};
+
 export default function CatalogPage() {
   return (
     <>

@@ -7,6 +7,12 @@ import { StorefrontTheme } from "@/components/site/storefront-theme";
 import { defaultStorefrontConfiguration } from "@/lib/storefront/config";
 import { getPublicStorefront } from "@/lib/storefront/data";
 
+export const metadata = {
+  title: "Гарантия и оплата — ДверМонт",
+  description:
+    "Оплата после установки, гарантия 1 год на дверь и монтаж, сроки поставки: в наличии или до 2 недель под заказ.",
+};
+
 export default function WarrantyPage() {
   return (
     <>

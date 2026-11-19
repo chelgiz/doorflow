@@ -7,6 +7,12 @@ import { StorefrontTheme } from "@/components/site/storefront-theme";
 import { defaultStorefrontConfiguration } from "@/lib/storefront/config";
 import { getPublicStorefront } from "@/lib/storefront/data";
 
+export const metadata = {
+  title: "Контакты — ДверМонт, Челябинск",
+  description:
+    "Телефон, почта и адрес магазина. Приём заявок ежедневно с 09:00 до 19:00.",
+};
+
 export default function ContactsPage() {
   return (
     <>
