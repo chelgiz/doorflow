@@ -4,7 +4,7 @@ import { demoOptionGroups } from "@/lib/commerce/demo-pricing";
 import type { ConfigurableDoor, DoorOptionGroup } from "@/lib/commerce/model";
 import { doorProductSchema } from "@/lib/commerce/model";
 
-export type DoorCategory = "apartment" | "house" | "street";
+export type DoorCategory = "apartment" | "house";
 export type DoorCategoryFilter = "all" | DoorCategory;
 
 export type Product = {
@@ -137,10 +137,10 @@ const demoProductFixtures: Omit<Product, "isDemo" | "optionGroups" | "attributes
     slug: "df-t05-sand",
     model: "DF-T05",
     name: "Светлый камень",
-    series: "Серия «Улица» · DEMO",
-    description: "Нейтральное оформление для входа с улицы.",
-    category: "street",
-    categoryLabel: "Улица",
+    series: "Серия «Для дома» · DEMO",
+    description: "Нейтральное оформление для загородного дома.",
+    category: "house",
+    categoryLabel: "Для дома",
     dimensions: "2000 × 800 мм",
     height: 2000,
     width: 800,
@@ -244,11 +244,10 @@ type PersistedProduct = {
 };
 
 const publicAttributesSchema = doorProductSchema.shape.attributes;
-const categorySchema = z.enum(["apartment", "house", "street"]);
+const categorySchema = z.enum(["apartment", "house"]);
 const categoryLabels: Record<DoorCategory, string> = {
-  apartment: "Квартира",
+  apartment: "Для квартиры",
   house: "Для дома",
-  street: "Улица",
 };
 const variants = ["graphite", "walnut", "slate", "olive", "sand", "plum"] as const;
 

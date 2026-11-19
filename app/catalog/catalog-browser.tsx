@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import type { DoorCategoryFilter, Product } from "@/lib/products";
@@ -11,7 +12,6 @@ const filters: { value: DoorCategoryFilter; label: string }[] = [
   { value: "all", label: "Все модели" },
   { value: "apartment", label: "Для квартиры" },
   { value: "house", label: "Для дома" },
-  { value: "street", label: "Уличные" },
 ];
 
 type CatalogBrowserProps = {
@@ -20,8 +20,12 @@ type CatalogBrowserProps = {
 };
 
 export function CatalogBrowser({ products, demoMode }: CatalogBrowserProps) {
+  const searchParams = useSearchParams();
+  const requestedCategory = searchParams?.get("purpose");
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<DoorCategoryFilter>("all");
+  const [category, setCategory] = useState<DoorCategoryFilter>(
+    requestedCategory === "apartment" || requestedCategory === "house" ? requestedCategory : "all",
+  );
   const [sortOrder, setSortOrder] = useState<SortOrder>("default");
 
   const visibleProducts = useMemo(() => {

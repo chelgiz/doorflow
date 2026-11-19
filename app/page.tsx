@@ -2,12 +2,7 @@ import { AttributionTracker } from "@/components/attribution-tracker";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Boxes,
-  DraftingCompass,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowUpRight, Boxes, ShieldCheck } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -22,17 +17,14 @@ const categories = [
   {
     icon: Boxes,
     title: "Для квартиры",
-    detail: "Модели для многоквартирного дома",
+    detail: "Тёплые двери с шумоизоляцией для подъезда",
+    href: "/catalog?purpose=apartment",
   },
   {
     icon: ShieldCheck,
-    title: "Для загородного дома",
-    detail: "Решения для частного жилья",
-  },
-  {
-    icon: DraftingCompass,
-    title: "Технические",
-    detail: "Для хозяйственных и общих зон",
+    title: "Для дома",
+    detail: "Терморазрыв и утепление — для улицы и мороза",
+    href: "/catalog?purpose=house",
   },
 ];
 
@@ -97,8 +89,8 @@ async function HomeContent() {
               </p>
             </div>
             <div className="category-grid">
-              {categories.map(({ icon: Icon, title, detail }) => (
-                <Link className="category-tile" href="/catalog" key={title}>
+              {categories.map(({ icon: Icon, title, detail, href }) => (
+                <Link className="category-tile" href={href} key={title}>
                   <span className="category-tile-icon">
                     <Icon aria-hidden="true" />
                   </span>

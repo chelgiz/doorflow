@@ -34,7 +34,7 @@ type AdminProduct = {
   model: string;
   name: string;
   description: string;
-  category: "apartment" | "house" | "street";
+  category: "apartment" | "house";
   basePriceMinor: number;
   costMinor: number | null;
   manufacturerId: string | null;
@@ -328,9 +328,8 @@ export function AdminProducts({
           <label>Название<input onChange={(event) => setEditor({ ...editor, name: event.target.value })} required value={editor.name} /></label>
           <label>Категория
             <select onChange={(event) => setEditor({ ...editor, category: event.target.value as AdminProduct["category"] })} value={editor.category}>
-              <option value="apartment">Квартира</option>
+              <option value="apartment">Для квартиры</option>
               <option value="house">Дом</option>
-              <option value="street">Улица</option>
             </select>
           </label>
           <label>Базовая цена, ₽<input min="0" onChange={(event) => setEditor({ ...editor, price: event.target.value })} required step="0.01" type="number" value={editor.price} /></label>

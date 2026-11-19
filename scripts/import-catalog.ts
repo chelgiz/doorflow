@@ -62,15 +62,19 @@ const CATALOG_DESCRIPTION_LIMIT = 2000;
 const MAX_IMAGE_WIDTH = 1600;
 const MAX_IMAGE_BYTES = 1024 * 1024;
 
-type CategoryMapping = { category: "apartment" | "house" | "street"; collection: string };
+type CategoryMapping = { category: "apartment" | "house"; collection: string };
 
+/**
+ * Назначение: для дома берём только двери с терморазрывом, всё остальное —
+ * для квартиры. Коллекция сохраняет серию прайса для карточки и фильтров.
+ */
 const CATEGORY_MAP: ReadonlyArray<{ match: RegExp; mapping: CategoryMapping }> = [
+  { match: /УЛИЧНЫЕ|ТЕРМОРАЗРЫВ/i, mapping: { category: "house", collection: "Термо · для улицы" } },
   { match: /2\s*КОНТУРА.*ПОЛОТНО 60/i, mapping: { category: "apartment", collection: "2 контура · полотно 60 мм" } },
-  { match: /8 см.*2\s*КОНТУРА/i, mapping: { category: "house", collection: "8 см · 2 контура" } },
-  { match: /3\s*КОНТУРА/i, mapping: { category: "house", collection: "3 контура" } },
-  { match: /3\s*К?\s*ПРЕМИУМ/i, mapping: { category: "house", collection: "3К премиум" } },
+  { match: /8 см.*2\s*КОНТУРА/i, mapping: { category: "apartment", collection: "8 см · 2 контура" } },
+  { match: /3\s*КОНТУРА/i, mapping: { category: "apartment", collection: "3 контура" } },
+  { match: /3\s*К?\s*ПРЕМИУМ/i, mapping: { category: "apartment", collection: "3К премиум" } },
   { match: /МДФ\s*\/\s*МДФ/i, mapping: { category: "apartment", collection: "МДФ/МДФ" } },
-  { match: /УЛИЧНЫЕ|ТЕРМОРАЗРЫВ/i, mapping: { category: "street", collection: "Уличные с терморазрывом" } },
 ];
 
 function categoryFor(sourceCategory: string): CategoryMapping {
