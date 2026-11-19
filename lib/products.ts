@@ -4,7 +4,7 @@ import { demoOptionGroups } from "@/lib/commerce/demo-pricing";
 import type { ConfigurableDoor, DoorOptionGroup } from "@/lib/commerce/model";
 import { doorProductSchema } from "@/lib/commerce/model";
 
-export type DoorCategory = "apartment" | "house" | "technical";
+export type DoorCategory = "apartment" | "house" | "street";
 export type DoorCategoryFilter = "all" | DoorCategory;
 
 export type Product = {
@@ -137,10 +137,10 @@ const demoProductFixtures: Omit<Product, "isDemo" | "optionGroups" | "attributes
     slug: "df-t05-sand",
     model: "DF-T05",
     name: "Светлый камень",
-    series: "Серия «Техническая» · DEMO",
-    description: "Нейтральное оформление для подсобных и общих помещений.",
-    category: "technical",
-    categoryLabel: "Техническая",
+    series: "Серия «Улица» · DEMO",
+    description: "Нейтральное оформление для входа с улицы.",
+    category: "street",
+    categoryLabel: "Улица",
     dimensions: "2000 × 800 мм",
     height: 2000,
     width: 800,
@@ -244,11 +244,11 @@ type PersistedProduct = {
 };
 
 const publicAttributesSchema = doorProductSchema.shape.attributes;
-const categorySchema = z.enum(["apartment", "house", "technical"]);
+const categorySchema = z.enum(["apartment", "house", "street"]);
 const categoryLabels: Record<DoorCategory, string> = {
   apartment: "Квартира",
   house: "Для дома",
-  technical: "Техническая",
+  street: "Улица",
 };
 const variants = ["graphite", "walnut", "slate", "olive", "sand", "plum"] as const;
 
@@ -269,7 +269,10 @@ export function mapPersistedProduct(row: PersistedProduct): Product {
     slug: row.slug,
     model: row.model,
     name: row.name,
-    series: row.manufacturer?.series ?? row.manufacturer?.name ?? "",
+    series:
+      row.manufacturer?.series ??
+      row.manufacturer?.name ??
+      (typeof attributes.collection === "string" ? attributes.collection : ""),
     description: row.description,
     category,
     categoryLabel: categoryLabels[category],

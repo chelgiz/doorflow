@@ -62,7 +62,52 @@ const CATALOG_DESCRIPTION_LIMIT = 2000;
 const MAX_IMAGE_WIDTH = 1600;
 const MAX_IMAGE_BYTES = 1024 * 1024;
 
-function parseSpecifications(product: SourceProduct) {
+type CategoryMapping = { category: "apartment" | "house" | "street"; collection: string };
+
+const CATEGORY_MAP: ReadonlyArray<{ match: RegExp; mapping: CategoryMapping }> = [
+  { match: /2\s*КОНТУРА.*ПОЛОТНО 60/i, mapping: { category: "apartment", collection: "2 контура · полотно 60 мм" } },
+  { match: /8 см.*2\s*КОНТУРА/i, mapping: { category: "house", collection: "8 см · 2 контура" } },
+  { match: /3\s*КОНТУРА/i, mapping: { category: "house", collection: "3 контура" } },
+  { match: /3\s*К?\s*ПРЕМИУМ/i, mapping: { category: "house", collection: "3К премиум" } },
+  { match: /МДФ\s*\/\s*МДФ/i, mapping: { category: "apartment", collection: "МДФ/МДФ" } },
+  { match: /УЛИЧНЫЕ|ТЕРМОРАЗРЫВ/i, mapping: { category: "street", collection: "Уличные с терморазрывом" } },
+];
+
+function categoryFor(sourceCategory: string): CategoryMapping {
+  for (const entry of CATEGORY_MAP) {
+    if (entry.match.test(sourceCategory)) return entry.mapping;
+  }
+  return { category: "apartment", collection: sourceCategory.slice(0, 80) };
+}
+
+/** Извлекает канонические атрибуты витрины из строк прайса. */
+function canonicalAttributes(product: SourceProduct, specifications: Record<string, string>) {
+  const text = (key: string) => specifications[key];
+  const attributes: Record<string, string | number | boolean> = {
+    collection: categoryFor(product.category ?? "").collection,
+  };
+  const leaf = /Толщина\s*(\d{2,3})/i.exec(text("Полотно") ?? "");
+  if (leaf) attributes.leafThickness = Number(leaf[1]);
+  const contours = /(\d)\s*контур/i.exec(text("Уплотнитель") ?? "");
+  if (contours) attributes.sealContours = Number(contours[1]);
+  const locks = [text("Замок основной"), text("Замок дополнительный")].filter(Boolean).join(" · ");
+  if (locks) attributes.locks = locks;
+  const color = text("Цвет");
+  if (color) attributes.color = color.replace(/^"\s*/, "").trim();
+  const outside = text("Отделка снаружи");
+  if (outside) attributes.exteriorFinish = outside;
+  const inside = text("Отделка внутри");
+  if (inside) attributes.interiorFinish = inside;
+  const insulation = text("Наполнение") ?? text("Утепление");
+  if (insulation) attributes.insulation = insulation;
+  const dimensions = text("Размер по коробу, мм");
+  if (dimensions) attributes.dimensions = dimensions.replace(/^Стандарт\s*-\s*/i, "").trim();
+  else if (product.sizes.length > 0) attributes.dimensions = `${product.sizes.join(" / ")} мм`;
+  attributes.warrantyYears = 1;
+  return attributes;
+}
+
+function parseSpecifications(product: SourceProduct): Record<string, string | number | boolean> {
   const specifications: Record<string, string> = {};
   let lastKey: string | null = null;
   for (const rawLine of product.description.split("\n")) {
@@ -81,10 +126,31 @@ function parseSpecifications(product: SourceProduct) {
   }
   specifications["Гарантия"] = "1 год";
   specifications["Наличие"] = "в наличии; отдельные позиции — поставка до 2 недель";
+  // Строковые поля прайса нормализуем, но канонические атрибуты считаем до
+  // удаления дублей: они извлекаются как раз из этих строк прайса.
   for (const [key, value] of Object.entries(specifications)) {
     specifications[key] = value.replace(/\s+/g, " ").trim().slice(0, 500);
   }
-  return specifications;
+  const canonical = canonicalAttributes(product, specifications);
+  // Эти поля прайса дублируют канонические атрибуты витрины (они ниже),
+  // иначе карточка товара показывала бы «Гарантия» и «Отделка внутри» по два раза.
+  for (const duplicate of [
+    "Гарантия",
+    "Размер по коробу, мм",
+    "Размеры",
+    "Отделка внутри",
+    "Отделка снаружи",
+    "Цвет",
+    "Полотно",
+    "Уплотнитель",
+    "Наполнение",
+    "Утепление",
+    "Замок основной",
+    "Замок дополнительный",
+  ]) {
+    delete specifications[duplicate];
+  }
+  return { ...specifications, ...canonical };
 }
 
 async function normalizePhoto(filePath: string) {
@@ -127,9 +193,50 @@ async function main() {
       where: { storeId_slug: { storeId: store.id, slug } },
       select: { id: true },
     });
+    const mapping = categoryFor(product.category ?? "");
     if (existing) {
+      const updated = await prisma.product.update({
+        where: { id: existing.id },
+        data: {
+          name: product.model.slice(0, 160),
+          description: product.description.slice(0, CATALOG_DESCRIPTION_LIMIT),
+          category: mapping.category,
+          basePriceMinor: BigInt(Math.round((product.retailPrice ?? 0) * 100)),
+          costMinor: product.optPrice ? BigInt(Math.round(product.optPrice * 100)) : null,
+          specifications: parseSpecifications(product) as Prisma.InputJsonValue,
+        },
+        select: { id: true },
+      });
       summary.skipped += 1;
-      console.log(`  = ${product.model} — уже есть (${slug})`);
+      if (!dryRun && photosDir) {
+        const assets = await prisma.storeAsset.count({ where: { productId: updated.id } });
+        if (assets === 0) {
+          let sortOrder = 0;
+          for (const photo of product.photos) {
+            try {
+              const normalized = await normalizePhoto(join(photosDir, photo));
+              await prisma.storeAsset.create({
+                data: {
+                  storeId: store.id,
+                  productId: updated.id,
+                  type: "PRODUCT_IMAGE",
+                  contentType: "image/webp",
+                  byteSize: normalized.byteLength,
+                  sha256: createHash("sha256").update(normalized).digest("hex"),
+                  data: normalized,
+                  sortOrder,
+                },
+              });
+              sortOrder += 1;
+              summary.photos += 1;
+            } catch (error) {
+              summary.photoErrors += 1;
+              console.warn(`    фото ${photo} не импортировано: ${error instanceof Error ? error.message : error}`);
+            }
+          }
+        }
+      }
+      console.log(`  = ${product.model} — обновлён (${mapping.category})`);
       continue;
     }
     const basePriceMinor = BigInt(Math.round((product.retailPrice ?? 0) * 100));
@@ -145,7 +252,7 @@ async function main() {
       model: product.model.slice(0, 100),
       name: product.model.slice(0, 160),
       description: product.description.slice(0, CATALOG_DESCRIPTION_LIMIT),
-      category: product.category.slice(0, 80),
+      category: mapping.category,
       basePriceMinor,
       costMinor,
       specifications: parseSpecifications(product) as Prisma.InputJsonValue,

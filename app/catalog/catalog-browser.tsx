@@ -11,7 +11,7 @@ const filters: { value: DoorCategoryFilter; label: string }[] = [
   { value: "all", label: "Все модели" },
   { value: "apartment", label: "Для квартиры" },
   { value: "house", label: "Для дома" },
-  { value: "technical", label: "Технические" },
+  { value: "street", label: "Уличные" },
 ];
 
 type CatalogBrowserProps = {

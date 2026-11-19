@@ -7,7 +7,7 @@ export const productSpecificationsSchema = z.record(
   z.string().trim().min(1).max(80),
   z.union([z.string().trim().max(500), z.number().finite(), z.boolean()]),
 );
-export const productCategorySchema = z.enum(["apartment", "house", "technical"]);
+export const productCategorySchema = z.enum(["apartment", "house", "street"]);
 
 const productOptionSchema = z.object({
   key: slugSchema.max(64),
