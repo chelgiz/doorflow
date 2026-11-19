@@ -322,4 +322,87 @@ integration("PostgreSQL-backed quote and lead flow", () => {
     }));
     expect(throttledResponse.status).toBe(429);
   });
+  it("pushes a new lead to Telegram without delaying the customer", async () => {
+    const originalFetch = globalThis.fetch;
+    const originalToken = process.env.DOORFLOW_TELEGRAM_BOT_TOKEN;
+    const originalChats = process.env.DOORFLOW_TELEGRAM_CHAT_IDS;
+    process.env.DOORFLOW_TELEGRAM_BOT_TOKEN = "123456789:AAHintegration-test-token-1234567890";
+    process.env.DOORFLOW_TELEGRAM_CHAT_IDS = "111111111, -1002222222222";
+    const calls: Array<{ url: string; body: { chat_id: string; text: string } }> = [];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      calls.push({ url: String(input), body: JSON.parse(String(init?.body)) });
+      return new Response("{}", { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    try {
+      const response = await createLead(
+        new Request("http://localhost/api/leads", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-forwarded-for": "198.51.100.77",
+            "Idempotency-Key": randomUUID(),
+          },
+          body: JSON.stringify({
+            type: "measurement",
+            name: "Telegram Test",
+            phone: "+7 (900) 000-00-09",
+            address: "Telegram address",
+            consent: true,
+            website: "",
+          }),
+        }),
+      );
+      expect(response.status).toBe(201);
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      expect(calls[0].url).toBe("https://api.telegram.org/bot123456789:AAHintegration-test-token-1234567890/sendMessage");
+      expect(calls.map((call) => call.body.chat_id).sort()).toEqual(["-1002222222222", "111111111"]);
+      expect(calls[0].body.text).toContain("Новая заявка: замер");
+      expect(calls[0].body.text).toContain("Telegram Test");
+      expect(calls[0].body.text).toContain("+79000000009");
+      expect(calls[0].body.text).toContain("/admin/leads/");
+    } finally {
+      globalThis.fetch = originalFetch;
+      process.env.DOORFLOW_TELEGRAM_BOT_TOKEN = originalToken;
+      process.env.DOORFLOW_TELEGRAM_CHAT_IDS = originalChats;
+    }
+  });
+
+  it("still saves the lead when Telegram is unreachable", async () => {
+    const originalFetch = globalThis.fetch;
+    const originalToken = process.env.DOORFLOW_TELEGRAM_BOT_TOKEN;
+    const originalChats = process.env.DOORFLOW_TELEGRAM_CHAT_IDS;
+    process.env.DOORFLOW_TELEGRAM_BOT_TOKEN = "123456789:AAHintegration-test-token-1234567890";
+    process.env.DOORFLOW_TELEGRAM_CHAT_IDS = "111111111";
+    const fetchMock = vi.fn(async () => {
+      throw new TypeError("network down");
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    try {
+      const response = await createLead(
+        new Request("http://localhost/api/leads", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-forwarded-for": "198.51.100.78",
+            "Idempotency-Key": randomUUID(),
+          },
+          body: JSON.stringify({
+            type: "measurement",
+            name: "Resilient Test",
+            phone: "+7 (900) 000-00-10",
+            address: "Resilient address",
+            consent: true,
+            website: "",
+          }),
+        }),
+      );
+      expect(response.status).toBe(201);
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    } finally {
+      globalThis.fetch = originalFetch;
+      process.env.DOORFLOW_TELEGRAM_BOT_TOKEN = originalToken;
+      process.env.DOORFLOW_TELEGRAM_CHAT_IDS = originalChats;
+    }
+  });
 });

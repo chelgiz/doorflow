@@ -7,6 +7,7 @@ import { leadRequestSchema, normalizePhone } from "@/lib/commerce/leads";
 import { getConfiguredStore } from "@/lib/db/config";
 import { getPrismaClient } from "@/lib/db/prisma";
 import { checkPublicSubmissionLimit } from "@/lib/commerce/public-submission-limit";
+import { notifyNewLead } from "@/lib/notifications/telegram";
 import { jsonResponse, readJsonRequest } from "@/lib/http/json";
 
 export async function POST(request: Request) {
@@ -65,6 +66,8 @@ export async function POST(request: Request) {
   let productId: string | undefined;
   let quoteSnapshot: Prisma.InputJsonValue | undefined;
   let selectedConfiguration: Prisma.InputJsonValue | undefined;
+  let productLabel: string | null = null;
+  let totalMinor: number | null = null;
 
   if (leadRequest.type === "order") {
     let source;
@@ -109,6 +112,8 @@ export async function POST(request: Request) {
     }
 
     productId = source.productId;
+    productLabel = `${source.product.name} · ${source.product.model}`;
+    totalMinor = quote.totalPriceMinor;
     selectedConfiguration = {
       quantity: leadRequest.quantity,
       selections: leadRequest.selections,
@@ -132,6 +137,7 @@ export async function POST(request: Request) {
       return jsonResponse({ error: "Выбранная модель сейчас недоступна" }, 422);
     }
     productId = source.productId;
+    productLabel = `${source.product.name} · ${source.product.model}`;
   }
 
   const attribution = leadRequest.attribution;
@@ -167,6 +173,23 @@ export async function POST(request: Request) {
     },
     select: { id: true, createdAt: true },
     });
+
+    // Fire-and-forget: the lead is already saved, and a slow or broken
+    // Telegram must not delay the customer's response.
+    void notifyNewLead({
+      id: savedLead.id,
+      type: leadRequest.type === "order" ? "ORDER" : "MEASUREMENT",
+      customerName: leadRequest.name,
+      phone: normalizePhone(leadRequest.phone),
+      address: leadRequest.address ?? null,
+      comment: leadRequest.comment ?? null,
+      productLabel,
+      totalMinor,
+      source: attribution?.source ?? null,
+      utmSource: attribution?.utmSource ?? null,
+      createdAt: savedLead.createdAt,
+      adminBaseUrl: new URL(request.url).origin,
+    }).catch(() => undefined);
 
     return jsonResponse(
       {

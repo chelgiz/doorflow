@@ -34,6 +34,9 @@
   заявка → замер → заказ → оплата → установка; RBAC проверен; аналитика посчитана.
 - **Этап 2 в работе:** 2.1 назначение менеджера (`b4d85a3`); впереди 2.2 первый
   контакт/SLA 2 ч, 2.3 напоминания, 2.4 причины отказа, 2.5 повторные касания.
+- **Уведомления о заявках:** новая публичная заявка уходит в Telegram
+  (`DOORFLOW_TELEGRAM_BOT_TOKEN`, `DOORFLOW_TELEGRAM_CHAT_IDS` через запятую);
+  ошибки отправки не ломают форму — заявка уже сохранена.
 - **Этап 6 в работе:** 6.1 API агрегатов `/api/admin/analytics` (`fd43ca9`,
   `532f3ab`), 6.2 страница `/admin/analytics` (`b65960b`), 6.3 блок сводки на
   главной.
@@ -73,7 +76,7 @@
 
 ```bash
 export DOORFLOW_TEST_DATABASE_URL='postgresql://doorflow:doorflow_local_only@127.0.0.1:54329/doorflow_test?schema=public'
-npm test        # 115 passed, 28 файлов, 0 skipped (обновляется на каждом шаге)
+npm test        # 127 passed, 29 файлов, 0 skipped (обновляется на каждом шаге)
 npm run typecheck
 npm run lint
 npm run build
