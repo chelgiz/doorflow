@@ -4,7 +4,8 @@ import { leadVisibilityFilter } from "@/lib/admin/auth";
 import { analyticsPeriodStart, toPercent, type AnalyticsPeriod } from "@/lib/admin/analytics-metrics";
 import { CLOSED_LEAD_STATUSES } from "@/lib/admin/lead-actions";
 import { needsFollowUp } from "@/lib/admin/lead-followup";
-import { FIRST_CONTACT_SLA_MS, isFirstContactOverdue } from "@/lib/admin/lead-sla";
+import { FIRST_CONTACT_SLA_MINUTES, isFirstContactOverdue } from "@/lib/admin/lead-sla";
+import { workingMinutesBetween } from "@/lib/admin/working-hours";
 import { REJECTION_REASON_CODES } from "@/lib/admin/rejection-reasons";
 import { getPrismaClient } from "@/lib/db/prisma";
 
@@ -26,7 +27,11 @@ function contactStats(leads: LeadRow[]) {
     (lead) => (lead.firstContactAt!.getTime() - lead.createdAt.getTime()) / 60_000,
   );
   const sorted = [...minutes].sort((a, b) => a - b);
-  const withinSla = minutes.filter((value) => value <= FIRST_CONTACT_SLA_MS / 60_000).length;
+  // The SLA itself counts working minutes, while the averages below show real
+  // elapsed time — a lead created on Saturday is answered on Monday morning.
+  const withinSla = contacted.filter(
+    (lead) => workingMinutesBetween(lead.createdAt, lead.firstContactAt!) <= FIRST_CONTACT_SLA_MINUTES,
+  ).length;
   return {
     withContact: contacted.length,
     avgMinutes: minutes.length

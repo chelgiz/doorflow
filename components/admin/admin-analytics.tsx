@@ -248,7 +248,7 @@ export function AdminAnalytics({
               </dd>
             </div>
             <div>
-              <dt>В норме SLA (2 ч)</dt>
+              <dt>В норме SLA (2 рабочих часа)</dt>
               <dd>
                 {percent(firstContact.withinSlaPercent)}
                 <small>
@@ -283,7 +283,7 @@ export function AdminAnalytics({
             </div>
           </div>
           <p className="analytics-note">
-            Первый контакт — дольше 2 ч без контакта, действие — пропущен срок следующего шага,
+            Первый контакт — дольше 2 рабочих часов без контакта, действие — пропущен срок следующего шага,
             повторное касание — 3 дня без контакта. Закрытые заявки не считаются.
           </p>
         </section>

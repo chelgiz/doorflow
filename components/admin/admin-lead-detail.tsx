@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { adminLeadStatuses, statusLabel } from "@/components/admin/admin-leads";
 import { AdminLeadOperations, type CustomerHistory } from "@/components/admin/admin-lead-operations";
 import { REJECTION_REASON_CODES, rejectionReasonLabel } from "@/lib/admin/rejection-reasons";
+import { FIRST_CONTACT_SLA_DESCRIPTION, firstContactDueAt } from "@/lib/admin/lead-sla";
 
 export type LeadDetailData = {
   id: string;
@@ -92,6 +93,7 @@ export function AdminLeadDetail({
   const [assignedManagerId, setAssignedManagerId] = useState(initialLead.assignedManager?.id ?? "");
   const [assignError, setAssignError] = useState("");
   const [assignMessage, setAssignMessage] = useState("");
+  const slaDeadline = firstContactDueAt(new Date(lead.createdAt)).toLocaleString("ru-RU");
   const [contactError, setContactError] = useState("");
   const [contactMessage, setContactMessage] = useState("");
   const [nextActionAt, setNextActionAt] = useState(
@@ -271,17 +273,20 @@ export function AdminLeadDetail({
           </form>
         </section>
         <section className="admin-panel">
-          <h2>Первый контакт (SLA 2 ч)</h2>
+          <h2>Первый контакт (SLA 2 рабочих часа)</h2>
           {lead.firstContactAt ? (
             <p className="admin-success" role="status">
               Зафиксирован: {new Date(lead.firstContactAt).toLocaleString("ru-RU")}
             </p>
           ) : firstContactOverdue ? (
             <p className="admin-error" role="alert">
-              Просрочен: с момента заявки прошло больше 2 часов, контакт не зафиксирован.
+              Просрочен: срок {slaDeadline} истёк, контакт не зафиксирован.
             </p>
           ) : (
-            <p className="admin-muted">Ожидает первого контакта — SLA 2 часа ещё не истёк.</p>
+            <p className="admin-muted">
+              Ожидает первого контакта — связаться нужно до {slaDeadline}.
+              <small>SLA: {FIRST_CONTACT_SLA_DESCRIPTION}.</small>
+            </p>
           )}
           {canWrite && !lead.firstContactAt && (
             <button className="button button-accent" onClick={recordFirstContact} type="button">

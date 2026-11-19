@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { authorizeAdmin, leadVisibilityFilter } from "@/lib/admin/auth";
-import { FIRST_CONTACT_SLA_MS, isFirstContactOverdue } from "@/lib/admin/lead-sla";
+import { isFirstContactOverdue } from "@/lib/admin/lead-sla";
 import { CLOSED_LEAD_STATUSES, isActionOverdue } from "@/lib/admin/lead-actions";
 import { FOLLOW_UP_AFTER_MS, needsFollowUp } from "@/lib/admin/lead-followup";
 import { getPrismaClient } from "@/lib/db/prisma";
@@ -46,10 +46,11 @@ export async function GET(request: Request) {
   const baseWhere = {
     storeId: authorization.actor.storeId,
     ...leadVisibilityFilter(authorization.actor),
+    // The SLA deadline depends on working hours, so the candidate rows are
+    // narrowed in SQL (no contact, still open) and filtered in memory.
     ...(sla.data === "first-contact-overdue"
       ? {
           firstContactAt: null,
-          createdAt: { lt: new Date(Date.now() - FIRST_CONTACT_SLA_MS) },
           status: { notIn: [...CLOSED_LEAD_STATUSES] as never },
         }
       : {}),
@@ -77,13 +78,14 @@ export async function GET(request: Request) {
   const prisma = getPrismaClient();
   const now = new Date();
 
-  // The follow-up rule depends on the last status change, so those rows are
-  // filtered in memory; the candidate set is already narrow (3+ days old,
-  // open, contacted).
+  // The follow-up and SLA rules depend on computed deadlines, so those rows are
+  // filtered in memory; the candidate sets are already narrow (open leads
+  // only, and for follow-up also contacted ones).
+  const inMemoryFilter = sla.data === "follow-up-due" || sla.data === "first-contact-overdue";
   const rows = await prisma.lead.findMany({
     where: baseWhere,
     orderBy: { createdAt: "desc" },
-    ...(sla.data === "follow-up-due" ? {} : { skip: (page.data - 1) * PAGE_SIZE, take: PAGE_SIZE }),
+    ...(inMemoryFilter ? {} : { skip: (page.data - 1) * PAGE_SIZE, take: PAGE_SIZE }),
     select: leadSelect,
   });
 
@@ -107,6 +109,17 @@ export async function GET(request: Request) {
       followUpDue: needsFollowUp({ ...lead, lastStatusChangeAt }, now),
     };
   });
+
+  if (sla.data === "first-contact-overdue") {
+    const overdue = decorated.filter((lead) => lead.firstContactOverdue);
+    const start = (page.data - 1) * PAGE_SIZE;
+    return jsonResponse({
+      leads: overdue.slice(start, start + PAGE_SIZE),
+      total: overdue.length,
+      page: page.data,
+      pageSize: PAGE_SIZE,
+    });
+  }
 
   if (sla.data === "follow-up-due") {
     const due = decorated.filter((lead) => lead.followUpDue);

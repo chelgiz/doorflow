@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { GET as getAnalytics } from "@/app/api/admin/analytics/route";
 import { getPrismaClient } from "@/lib/db/prisma";
 import { hashAdminPassword } from "@/lib/admin/password";
+import { FIRST_CONTACT_SLA_MINUTES, isFirstContactOverdue } from "@/lib/admin/lead-sla";
+import { workingMinutesBetween } from "@/lib/admin/working-hours";
 
 const cookieState = vi.hoisted(() => ({ value: undefined as string | undefined }));
 vi.mock("next/headers", async (importOriginal) => {
@@ -36,6 +38,7 @@ integration("analytics aggregates", () => {
   let storeId: string;
   let ownerToken: string;
   let managerToken: string;
+  let fixtureNow = 0;
 
   function hash(token: string) {
     return createHash("sha256").update(token).digest("hex");
@@ -70,6 +73,7 @@ integration("analytics aggregates", () => {
     ]);
 
     const now = Date.now();
+    fixtureNow = now;
     const base = {
       storeId,
       customerName: "Analytics test",
@@ -203,13 +207,24 @@ integration("analytics aggregates", () => {
 
     expect(data.firstContact.withContact).toBe(2);
     expect(data.firstContact.avgMinutes).toBe(105); // (30 + 180) / 2
-    expect(data.firstContact.withinSla).toBe(1);
-    expect(data.firstContact.withinSlaPercent).toBe(50);
+    // The SLA counts working hours, so the expected value depends on the wall
+    // clock the test runs at; the rule itself is covered by lead-sla tests.
+    const withinSla = [
+      [fixtureNow - 2 * HOUR, fixtureNow - 2 * HOUR + 30 * MIN],
+      [fixtureNow - 4 * HOUR, fixtureNow - 1 * HOUR],
+    ].filter(
+      ([created, contacted]) =>
+        workingMinutesBetween(new Date(created), new Date(contacted)) <= FIRST_CONTACT_SLA_MINUTES,
+    ).length;
+    expect(data.firstContact.withinSla).toBe(withinSla);
+    expect(data.firstContact.withinSlaPercent).toBe(Math.round((withinSla / 2) * 1000) / 10);
 
-    // Point-in-time snapshot: it ignores the period and counts every open lead.
-    // Open leads without a contact older than 2h: L4 (5h) and the old lead (40d).
-    // The rejected lead is closed and therefore excluded.
-    expect(data.discipline.firstContactOverdue).toBe(2);
+    // Point-in-time snapshot: it ignores the period and counts every open lead
+    // whose working-hours window has passed. The rejected lead is closed.
+    const overdueOpenLeads = [fixtureNow - 5 * HOUR, fixtureNow - 40 * 24 * HOUR].filter((created) =>
+      isFirstContactOverdue({ createdAt: new Date(created), firstContactAt: null, status: "NEW" }, new Date()),
+    ).length;
+    expect(data.discipline.firstContactOverdue).toBe(overdueOpenLeads);
     expect(data.discipline.actionOverdue).toBe(0);
 
     expect(data.rejections.total).toBe(1);

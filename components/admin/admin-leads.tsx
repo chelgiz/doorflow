@@ -91,7 +91,7 @@ export function AdminLeads({
         <label>Просрочки
           <select onChange={(event) => { setSla(event.target.value); setPage(1); void loadLeads(search, status, event.target.value, 1); }} value={sla}>
             <option value="all">Все заявки</option>
-            <option value="first-contact-overdue">Нет первого контакта (SLA 2 ч)</option>
+            <option value="first-contact-overdue">Нет первого контакта (2 рабочих часа)</option>
             <option value="action-overdue">Просрочено действие</option>
             <option value="follow-up-due">Пора связаться (3 дня)</option>
           </select>
