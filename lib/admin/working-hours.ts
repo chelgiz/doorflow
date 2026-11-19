@@ -11,6 +11,8 @@
  * `WORKING_TIMEZONE`, so local development, tests and the VPS agree.
  */
 
+import { holidayFor } from "@/lib/admin/holidays";
+
 export const WORKING_TIMEZONE = "Asia/Yekaterinburg";
 
 /** Minutes from local midnight; key is the JS weekday (0 = Sunday). */
@@ -30,7 +32,8 @@ export const WORKING_HOURS: Readonly<Record<number, readonly WorkingSegment[]>> 
 };
 
 /** Human readable schedule for the UI. */
-export const WORKING_HOURS_DESCRIPTION = "ежедневно 09:00–19:00";
+export const WORKING_HOURS_DESCRIPTION =
+  "ежедневно 09:00–19:00, кроме государственных праздников";
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 86_400_000;
@@ -136,11 +139,17 @@ function segmentsOfWeekday(weekday: number): readonly WorkingSegment[] {
   return WORKING_HOURS[weekday] ?? [];
 }
 
+/** Segments of one local day: nothing on state holidays. */
+function segmentsOfDay(parts: LocalParts): readonly WorkingSegment[] {
+  if (holidayFor(parts.year, parts.month, parts.day)) return [];
+  return segmentsOfWeekday(parts.weekday);
+}
+
 /** True when the instant falls inside a working segment. */
 export function isWorkingTime(instant: Date, timeZone = WORKING_TIMEZONE): boolean {
   const parts = localParts(instant, timeZone);
   const minuteOfDay = parts.hour * 60 + parts.minute + parts.second / 60;
-  return segmentsOfWeekday(parts.weekday).some(
+  return segmentsOfDay(parts).some(
     ([start, end]) => minuteOfDay >= start && minuteOfDay < end,
   );
 }
@@ -159,7 +168,7 @@ export function addWorkingMinutes(
   let cursor = start;
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration += 1) {
     const parts = localParts(cursor, timeZone);
-    const segments = segmentsOfWeekday(parts.weekday);
+    const segments = segmentsOfDay(parts);
     const minuteOfDay = parts.hour * 60 + parts.minute + parts.second / 60;
     for (const [startMinute, endMinute] of segments) {
       if (minuteOfDay >= endMinute) continue;
@@ -190,7 +199,7 @@ export function workingMinutesBetween(
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration += 1) {
     const dayParts = localParts(dayCursor, timeZone);
     let segmentTotal = 0;
-    for (const [startMinute, endMinute] of segmentsOfWeekday(dayParts.weekday)) {
+    for (const [startMinute, endMinute] of segmentsOfDay(dayParts)) {
       const segmentStart = instantAtLocalMinute(dayParts, startMinute, timeZone).getTime();
       const segmentEnd = instantAtLocalMinute(dayParts, endMinute, timeZone).getTime();
       const overlapStart = Math.max(segmentStart, fromMs);

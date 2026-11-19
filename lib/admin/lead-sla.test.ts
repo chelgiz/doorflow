@@ -46,6 +46,20 @@ describe("first-contact SLA in working hours", () => {
     expect(isFirstContactOverdue(lead(evening), local(2026, 11, 17, 12, 31))).toBe(true);
   });
 
+  it("does not count state holidays", () => {
+    // 31 декабря 18:00 + 4 рабочих часа = 9 января 12:00.
+    const newYear = local(2026, 12, 31, 18);
+    expect(firstContactDueAt(newYear).toISOString()).toBe(local(2027, 1, 9, 12).toISOString());
+    expect(isFirstContactOverdue(lead(newYear), local(2027, 1, 9, 11, 59))).toBe(false);
+    expect(isFirstContactOverdue(lead(newYear), local(2027, 1, 9, 12, 1))).toBe(true);
+  });
+
+  it("starts counting after a holiday that falls inside the day", () => {
+    // Заявка в праздник 1 января: срок считается с 09:00 9 января.
+    const holiday = local(2027, 1, 1, 12);
+    expect(firstContactDueAt(holiday).toISOString()).toBe(local(2027, 1, 9, 13).toISOString());
+  });
+
   it("counts weekend leads immediately, because the store works every day", () => {
     const sunday = local(2026, 11, 22, 12);
     expect(firstContactDueAt(sunday).toISOString()).toBe(local(2026, 11, 22, 16).toISOString());
