@@ -16,18 +16,21 @@ export const WORKING_TIMEZONE = "Asia/Yekaterinburg";
 /** Minutes from local midnight; key is the JS weekday (0 = Sunday). */
 export type WorkingSegment = readonly [startMinute: number, endMinute: number];
 
+const EVERY_DAY: readonly WorkingSegment[] = [[9 * 60, 19 * 60]];
+
+/** The store answers every day, including weekends: 09:00–19:00. */
 export const WORKING_HOURS: Readonly<Record<number, readonly WorkingSegment[]>> = {
-  0: [], // воскресенье — выходной
-  1: [[9 * 60, 19 * 60]], // понедельник 09:00–19:00
-  2: [[9 * 60, 19 * 60]],
-  3: [[9 * 60, 19 * 60]],
-  4: [[9 * 60, 19 * 60]],
-  5: [[9 * 60, 19 * 60]], // пятница 09:00–19:00
-  6: [[10 * 60, 15 * 60]], // суббота 10:00–15:00
+  0: EVERY_DAY,
+  1: EVERY_DAY,
+  2: EVERY_DAY,
+  3: EVERY_DAY,
+  4: EVERY_DAY,
+  5: EVERY_DAY,
+  6: EVERY_DAY,
 };
 
 /** Human readable schedule for the UI. */
-export const WORKING_HOURS_DESCRIPTION = "Пн–Пт 09:00–19:00, Сб 10:00–15:00";
+export const WORKING_HOURS_DESCRIPTION = "ежедневно 09:00–19:00";
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 86_400_000;

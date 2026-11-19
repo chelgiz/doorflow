@@ -33,7 +33,7 @@ export function AdminHomeSummary({ summary }: { summary: HomeSummary }) {
         >
           <span className="analytics-tile-label">Просрочен контакт</span>
           <strong className="analytics-tile-value">{summary.firstContactOverdue}</strong>
-          <span className="analytics-tile-note">дольше 2 рабочих часов без контакта</span>
+          <span className="analytics-tile-note">дольше 4 рабочих часов без контакта</span>
         </article>
         <article
           className={

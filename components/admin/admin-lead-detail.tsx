@@ -273,7 +273,7 @@ export function AdminLeadDetail({
           </form>
         </section>
         <section className="admin-panel">
-          <h2>Первый контакт (SLA 2 рабочих часа)</h2>
+          <h2>Первый контакт (SLA 4 рабочих часа)</h2>
           {lead.firstContactAt ? (
             <p className="admin-success" role="status">
               Зафиксирован: {new Date(lead.firstContactAt).toLocaleString("ru-RU")}

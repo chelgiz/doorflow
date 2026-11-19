@@ -1,9 +1,9 @@
 /**
  * First-contact SLA for CRM leads (step 2.2, reworked in step 7).
  *
- * The store commits to contacting a new lead within two *working* hours: a lead
- * that arrives at 23:00 is not overdue at 01:00, and a Sunday lead starts
- * counting on Monday morning. Working hours live in `working-hours.ts`.
+ * The store commits to contacting a new lead within four *working* hours: a lead
+ * that arrives at 23:00 is still fine at 01:00, because the clock only runs
+ * during opening hours. Working hours live in `working-hours.ts`.
  */
 import { isLeadClosed } from "@/lib/admin/lead-actions";
 import {
@@ -12,8 +12,8 @@ import {
   workingMinutesBetween,
 } from "@/lib/admin/working-hours";
 
-export const FIRST_CONTACT_SLA_MINUTES = 120;
-export const FIRST_CONTACT_SLA_DESCRIPTION = `2 рабочих часа (${WORKING_HOURS_DESCRIPTION})`;
+export const FIRST_CONTACT_SLA_MINUTES = 240;
+export const FIRST_CONTACT_SLA_DESCRIPTION = `4 рабочих часа (${WORKING_HOURS_DESCRIPTION})`;
 
 export type SlaLead = {
   createdAt: Date;

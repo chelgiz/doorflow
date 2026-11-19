@@ -16,40 +16,41 @@ function lead(createdAt: Date, firstContactAt: Date | null = null, status = "NEW
 }
 
 describe("first-contact SLA in working hours", () => {
-  it("is two working hours", () => {
-    expect(FIRST_CONTACT_SLA_MINUTES).toBe(120);
-    // Понедельник 10:00 → 12:00.
+  it("is four working hours", () => {
+    expect(FIRST_CONTACT_SLA_MINUTES).toBe(240);
+    // Понедельник 10:00 → 14:00.
     expect(firstContactDueAt(local(2026, 11, 16, 10)).toISOString()).toBe(
-      local(2026, 11, 16, 12).toISOString(),
+      local(2026, 11, 16, 14).toISOString(),
     );
   });
 
   it("does not count the night", () => {
-    // Понедельник 18:30 → вторник 10:30.
+    // Понедельник 18:30 → вторник 12:30.
     expect(firstContactDueAt(local(2026, 11, 16, 18, 30)).toISOString()).toBe(
-      local(2026, 11, 17, 10, 30).toISOString(),
+      local(2026, 11, 17, 12, 30).toISOString(),
     );
   });
 
   it("is not overdue inside the working window", () => {
     const created = local(2026, 11, 16, 10);
-    expect(isFirstContactOverdue(lead(created), local(2026, 11, 16, 11, 59))).toBe(false);
-    expect(isFirstContactOverdue(lead(created), local(2026, 11, 16, 12))).toBe(false);
+    expect(isFirstContactOverdue(lead(created), local(2026, 11, 16, 13, 59))).toBe(false);
+    expect(isFirstContactOverdue(lead(created), local(2026, 11, 16, 14))).toBe(false);
   });
 
   it("is overdue once the working window is over", () => {
     const created = local(2026, 11, 16, 10);
-    expect(isFirstContactOverdue(lead(created), local(2026, 11, 16, 12, 1))).toBe(true);
+    expect(isFirstContactOverdue(lead(created), local(2026, 11, 16, 14, 1))).toBe(true);
     // Овернайт не делает заявку просроченной: 18:30 + ночь.
     const evening = local(2026, 11, 16, 18, 30);
-    expect(isFirstContactOverdue(lead(evening), local(2026, 11, 17, 10))).toBe(false);
-    expect(isFirstContactOverdue(lead(evening), local(2026, 11, 17, 10, 31))).toBe(true);
+    expect(isFirstContactOverdue(lead(evening), local(2026, 11, 17, 12))).toBe(false);
+    expect(isFirstContactOverdue(lead(evening), local(2026, 11, 17, 12, 31))).toBe(true);
   });
 
-  it("does not make a weekend lead overdue before Monday", () => {
+  it("counts weekend leads immediately, because the store works every day", () => {
     const sunday = local(2026, 11, 22, 12);
-    expect(isFirstContactOverdue(lead(sunday), local(2026, 11, 23, 10))).toBe(false);
-    expect(isFirstContactOverdue(lead(sunday), local(2026, 11, 23, 11, 1))).toBe(true);
+    expect(firstContactDueAt(sunday).toISOString()).toBe(local(2026, 11, 22, 16).toISOString());
+    expect(isFirstContactOverdue(lead(sunday), local(2026, 11, 22, 15, 59))).toBe(false);
+    expect(isFirstContactOverdue(lead(sunday), local(2026, 11, 22, 16, 1))).toBe(true);
   });
 
   it("is never overdue once the first contact is recorded", () => {
@@ -69,7 +70,8 @@ describe("first-contact SLA in working hours", () => {
 
   it("reports elapsed working hours, never negative", () => {
     const sunday = local(2026, 11, 22, 12);
-    expect(workingHoursSinceCreation(lead(sunday), local(2026, 11, 23, 12))).toBe(3);
-    expect(workingHoursSinceCreation(lead(sunday), local(2026, 11, 22, 13))).toBe(0);
+    // Воскресенье 12:00–19:00 плюс понедельник 09:00–12:00 = 10 рабочих часов.
+    expect(workingHoursSinceCreation(lead(sunday), local(2026, 11, 23, 12))).toBe(10);
+    expect(workingHoursSinceCreation(lead(sunday), local(2026, 11, 22, 13))).toBe(1);
   });
 });
