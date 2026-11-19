@@ -1,3 +1,4 @@
+import { AttributionTracker } from "@/components/attribution-tracker";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import Link from "next/link";
@@ -55,9 +56,12 @@ export function generateStaticParams() {
 
 export default function ProductPage({ params }: ProductPageProps) {
   return (
-    <Suspense fallback={<main className="detail-main"><div className="container">Загрузка товара…</div></main>}>
-      <ProductPageContent params={params} />
-    </Suspense>
+    <>
+      <AttributionTracker />
+      <Suspense fallback={<main className="detail-main"><div className="container">Загрузка товара…</div></main>}>
+        <ProductPageContent params={params} />
+      </Suspense>
+    </>
   );
 }
 

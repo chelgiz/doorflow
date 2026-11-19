@@ -1,3 +1,4 @@
+import { AttributionTracker } from "@/components/attribution-tracker";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import Link from "next/link";
@@ -37,9 +38,12 @@ const categories = [
 
 export default function Home() {
   return (
-    <Suspense fallback={<main className="container"><p>Загрузка витрины…</p></main>}>
-      <HomeContent />
-    </Suspense>
+    <>
+      <AttributionTracker />
+      <Suspense fallback={<main className="container"><p>Загрузка витрины…</p></main>}>
+        <HomeContent />
+      </Suspense>
+    </>
   );
 }
 

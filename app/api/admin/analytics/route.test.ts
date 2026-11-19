@@ -125,6 +125,7 @@ integration("analytics aggregates", () => {
         status: "NEW",
         idempotencyKey: `an-l4-${suffix}`,
         assignedManagerId: otherManager.id,
+        utmSource: "yandex",
         createdAt: new Date(now - 5 * HOUR),
       },
     });
@@ -249,10 +250,15 @@ integration("analytics aggregates", () => {
     expect(data.unassigned).not.toBeNull();
     expect(data.unassigned.leads).toBe(1);
 
+    // One lead carries a UTM tag, so "sources" is available and leaves the block.
+    expect(data.sources).toEqual({
+      total: 1,
+      leads: 4,
+      top: [{ source: "yandex", leads: 1, sharePercent: 100 }],
+    });
     expect(data.unavailable.map((row: { metric: string }) => row.metric)).toEqual([
       "profit",
       "ltv",
-      "sources",
       "delivery_lead_time",
     ]);
   });

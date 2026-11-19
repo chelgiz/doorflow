@@ -316,6 +316,35 @@ export function AdminAnalytics({
         </section>
 
         <section className="admin-panel">
+          <h2>Источники заявок</h2>
+          <p className="admin-muted">
+            UTM-метка или внешний сайт-реферер, с которого пришёл клиент. Источник указан у{" "}
+            {report.sources.total} из {report.sources.leads}{" "}
+            {plural(report.sources.leads, "заявки", "заявок", "заявок")}.
+          </p>
+          {report.sources.top.length > 0 ? (
+            <div className="analytics-bars">
+              {report.sources.top.map((row) => (
+                <div className="analytics-bar-row" key={row.source}>
+                  <span>{row.source}</span>
+                  <span className="analytics-bar-track">
+                    <span className="analytics-bar-fill" style={{ width: `${row.sharePercent}%` }} />
+                  </span>
+                  <span className="analytics-bar-value">
+                    {row.leads} · {percent(row.sharePercent)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="admin-empty">
+              Заявок с источником за период нет: метки UTM появляются, когда клиент приходит по
+              ссылке с рекламы или из поиска.
+            </p>
+          )}
+        </section>
+
+        <section className="admin-panel">
           <h2>Деньги</h2>
           <dl className="analytics-facts">
             <div>

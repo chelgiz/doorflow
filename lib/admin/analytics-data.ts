@@ -14,6 +14,8 @@ type LeadRow = {
   type: string;
   status: string;
   assignedManagerId: string | null;
+  source: string | null;
+  utmSource: string | null;
   firstContactAt: Date | null;
   createdAt: Date;
   nextActionAt: Date | null;
@@ -85,6 +87,8 @@ export async function buildStoreAnalytics(actor: AdminActor, period: AnalyticsPe
       type: true,
       status: true,
       assignedManagerId: true,
+      source: true,
+      utmSource: true,
       firstContactAt: true,
       createdAt: true,
       nextActionAt: true,
@@ -159,6 +163,27 @@ export async function buildStoreAnalytics(actor: AdminActor, period: AnalyticsPe
         sharePercent: toPercent(count, rejectionTotal) ?? 0,
       };
     }),
+  };
+
+  // Attribution: a lead counts as attributed when the form sent a UTM tag or a
+  // referrer. Only the top sources are shown, the rest are counted in total.
+  const sourceCounts = new Map<string, number>();
+  for (const lead of leads) {
+    const source = lead.utmSource ?? lead.source;
+    if (source) sourceCounts.set(source, (sourceCounts.get(source) ?? 0) + 1);
+  }
+  const attributedLeads = [...sourceCounts.values()].reduce((sum, count) => sum + count, 0);
+  const sources = {
+    total: attributedLeads,
+    leads: leads.length,
+    top: [...sourceCounts.entries()]
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, 8)
+      .map(([source, count]) => ({
+        source,
+        leads: count,
+        sharePercent: toPercent(count, attributedLeads) ?? 0,
+      })),
   };
 
   const orderWhere = {
@@ -260,6 +285,7 @@ export async function buildStoreAnalytics(actor: AdminActor, period: AnalyticsPe
     finance,
     managers,
     unassigned,
+    sources,
     unavailable: [
       {
         metric: "profit",
@@ -272,12 +298,16 @@ export async function buildStoreAnalytics(actor: AdminActor, period: AnalyticsPe
         reason: "Нет клиентов с повторными заказами",
         repeatCustomers: Number(repeatPhones[0]?.count ?? BigInt(0)),
       },
-      {
-        metric: "sources",
-        reason: "UTM/источник не передаются формой",
-        leadsWithSource,
-        totalLeads: leads.length,
-      },
+      ...(leadsWithSource === 0
+        ? [
+            {
+              metric: "sources",
+              reason: "Ни одна заявка периода не пришла с UTM-меткой или referrer",
+              leadsWithSource,
+              totalLeads: leads.length,
+            },
+          ]
+        : []),
       {
         metric: "delivery_lead_time",
         reason: "Нет завершённых доставок",

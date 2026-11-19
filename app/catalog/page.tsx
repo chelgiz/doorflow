@@ -1,3 +1,4 @@
+import { AttributionTracker } from "@/components/attribution-tracker";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import Link from "next/link";
@@ -13,9 +14,12 @@ import { isDemoMode } from "@/lib/db/config";
 
 export default function CatalogPage() {
   return (
-    <Suspense fallback={<main className="catalog-main"><div className="container">Загрузка каталога…</div></main>}>
-      <CatalogContent />
-    </Suspense>
+    <>
+      <AttributionTracker />
+      <Suspense fallback={<main className="catalog-main"><div className="container">Загрузка каталога…</div></main>}>
+        <CatalogContent />
+      </Suspense>
+    </>
   );
 }
 

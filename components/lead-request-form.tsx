@@ -4,6 +4,15 @@ import { useRef, useState, type FormEvent } from "react";
 import { useEffect } from "react";
 import { ArrowRight, LoaderCircle } from "lucide-react";
 import { storefrontCapabilitiesSchema } from "@/lib/commerce/model";
+import {
+  ATTRIBUTION_STORAGE_KEY,
+  attributionFromSearch,
+  isEmptyAttribution,
+  mergeAttribution,
+  parseStoredAttribution,
+  referrerSource,
+  type Attribution,
+} from "@/lib/commerce/attribution";
 
 type LeadRequestFormProps = {
   productSlug: string;
@@ -14,19 +23,30 @@ type LeadRequestFormProps = {
   services: Record<string, number>;
 };
 
-function getAttribution() {
-  const search = new URLSearchParams(window.location.search);
-  const values = {
-    utmSource: search.get("utm_source"),
-    utmMedium: search.get("utm_medium"),
-    utmCampaign: search.get("utm_campaign"),
-    utmContent: search.get("utm_content"),
-    utmTerm: search.get("utm_term"),
+/**
+ * First-touch attribution: the campaign a visitor arrived with is kept for the
+ * whole browser session, so navigating from the landing page to a product does
+ * not lose `utm_source`. A later page view never overwrites stored values.
+ */
+function resolveAttribution(): Attribution | undefined {
+  const fromUrl = attributionFromSearch(window.location.search);
+  const fromReferrer: Attribution = {
+    source: referrerSource(document.referrer, window.location.origin),
   };
-  const attribution = Object.fromEntries(
-    Object.entries(values).filter((entry): entry is [string, string] => Boolean(entry[1])),
-  );
-  return Object.keys(attribution).length > 0 ? attribution : undefined;
+  let stored: Attribution | null = null;
+  try {
+    stored = parseStoredAttribution(window.sessionStorage.getItem(ATTRIBUTION_STORAGE_KEY));
+  } catch {
+    stored = null;
+  }
+  const merged = mergeAttribution(stored, { ...fromUrl, ...fromReferrer });
+  if (isEmptyAttribution(merged)) return undefined;
+  try {
+    window.sessionStorage.setItem(ATTRIBUTION_STORAGE_KEY, JSON.stringify(merged));
+  } catch {
+    // Private mode or a full quota: attribution is a nice-to-have, not a blocker.
+  }
+  return merged;
 }
 
 export function LeadRequestForm({
@@ -97,7 +117,7 @@ export function LeadRequestForm({
       comment: formData.get("comment") || undefined,
       consent: formData.get("consent") === "on",
       website: formData.get("website") ?? "",
-      attribution: getAttribution(),
+      attribution: resolveAttribution(),
       ...(requestType === "order"
         ? { productSlug, quantity, selections, services }
         : isDemoProduct
