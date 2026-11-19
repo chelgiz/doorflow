@@ -7,9 +7,11 @@ import Image from "next/image";
 import type { StorefrontConfiguration } from "@/lib/storefront/config";
 
 const navigation = [
-  { href: "/catalog", label: "Каталог дверей" },
-  { href: "/#categories", label: "Категории" },
-  { href: "/#how-to-choose", label: "Как выбрать" },
+  { href: "/catalog", label: "Каталог" },
+  { href: "/#works", label: "Наши работы" },
+  { href: "/delivery", label: "Доставка и монтаж" },
+  { href: "/warranty", label: "Гарантия и оплата" },
+  { href: "/contacts", label: "Контакты" },
 ];
 
 export function SiteHeader({

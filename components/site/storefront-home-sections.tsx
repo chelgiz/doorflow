@@ -71,27 +71,6 @@ export function StorefrontHomeSections({
           );
         })}
       </section>
-
-      {home.informationBlocks.length > 0 && (
-        <section className="section" id="how-to-choose">
-          <div className="container storefront-information">
-            {home.informationBlocks.map((block, index) => (
-              <article className="selection-panel" key={`${block.title}-${index}`}>
-                <div>
-                  <span className="eyebrow">{configuration.identity.publicName}</span>
-                  <h2>{block.title}</h2>
-                  <p>{block.body}</p>
-                </div>
-                {index === 0 && (
-                  <Link className="button button-accent" href={home.primaryCtaHref}>
-                    {home.primaryCtaLabel} <ArrowRight aria-hidden="true" />
-                  </Link>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
     </>
   );
 }

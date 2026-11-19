@@ -7,6 +7,7 @@ import { ArrowUpRight, Boxes, ShieldCheck } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { HowWeWork } from "@/components/site/how-we-work";
 import { StorefrontHomeSections } from "@/components/site/storefront-home-sections";
 import { StorefrontTheme } from "@/components/site/storefront-theme";
 import { defaultStorefrontConfiguration } from "@/lib/storefront/config";
@@ -56,6 +57,8 @@ async function HomeContent() {
       <SiteHeader identity={configuration.identity} />
       <main>
         <StorefrontHomeSections configuration={configuration} />
+
+        <HowWeWork />
 
         <section className="section" id="collection">
           <div className="container">
