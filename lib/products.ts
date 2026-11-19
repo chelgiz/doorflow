@@ -31,12 +31,13 @@ export type Product = {
   price: number;
   variant: DoorVariant;
   imageUrl?: string;
+  imageUrls: string[];
   isDemo: boolean;
   optionGroups: DoorOptionGroup[];
   attributes: Record<string, string | number | boolean>;
 };
 
-const demoProductFixtures: Omit<Product, "isDemo" | "optionGroups" | "attributes">[] = [
+const demoProductFixtures: Omit<Product, "isDemo" | "optionGroups" | "attributes" | "imageUrls">[] = [
   {
     slug: "df-a01-graphite",
     model: "DF-A01",
@@ -186,6 +187,7 @@ const demoProductFixtures: Omit<Product, "isDemo" | "optionGroups" | "attributes
 export const products: Product[] = demoProductFixtures.map((product) => ({
   ...product,
   isDemo: true,
+  imageUrls: [],
   optionGroups: demoOptionGroups,
   attributes: (() => {
     const attributes: Record<string, string | number | boolean> = {};
@@ -291,6 +293,7 @@ export function mapPersistedProduct(row: PersistedProduct): Product {
     price: priceMinor / 100,
     variant,
     imageUrl: row.assets?.[0] ? `/api/store-assets/${row.assets[0].id}` : undefined,
+    imageUrls: (row.assets ?? []).map((asset) => `/api/store-assets/${asset.id}`),
     isDemo: false,
     attributes,
     optionGroups: row.optionGroups.map((group) => ({

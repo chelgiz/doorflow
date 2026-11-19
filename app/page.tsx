@@ -1,13 +1,13 @@
 import { AttributionTracker } from "@/components/attribution-tracker";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Boxes, ShieldCheck } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { HowWeWork } from "@/components/site/how-we-work";
+import { WorksGallery } from "@/components/site/works-gallery";
 import { StorefrontHomeSections } from "@/components/site/storefront-home-sections";
 import { StorefrontTheme } from "@/components/site/storefront-theme";
 import { defaultStorefrontConfiguration } from "@/lib/storefront/config";
@@ -89,22 +89,7 @@ async function HomeContent() {
                 </div>
                 <p>Реальные объекты в Челябинске и области — без ретуши и постановочных фото.</p>
               </div>
-              <div className="works-grid">
-                {configuration.gallery.map(({ assetId, caption }) => (
-                  <figure className="work-card" key={assetId}>
-                    <Image
-                      alt={caption ?? "Установленная входная дверь"}
-                      height={750}
-                      loading="lazy"
-                      sizes="(max-width: 640px) 50vw, (max-width: 1100px) 33vw, 300px"
-                      src={`/api/store-assets/${assetId}`}
-                      unoptimized
-                      width={600}
-                    />
-                    {caption && <figcaption>{caption}</figcaption>}
-                  </figure>
-                ))}
-              </div>
+              <WorksGallery items={configuration.gallery} />
             </div>
           </section>
         )}

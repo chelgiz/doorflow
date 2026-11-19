@@ -20,14 +20,26 @@ export function ProductCard({ product }: ProductCardProps) {
       >
         {product.isDemo && <span className="demo-badge">DEMO · ПРИМЕР</span>}
         {product.imageUrl ? (
-          <Image
-            alt={`Фото двери ${product.name}`}
-            className="door-illustration"
-            height={480}
-            src={product.imageUrl}
-            unoptimized
-            width={360}
-          />
+          <>
+            <Image
+              alt={`Фото двери ${product.name}`}
+              className="door-illustration product-image-main"
+              height={480}
+              src={product.imageUrl}
+              unoptimized
+              width={360}
+            />
+            {product.imageUrls[1] && (
+              <Image
+                alt={`Фото двери ${product.name} с другого ракурса`}
+                className="door-illustration product-image-alt"
+                height={480}
+                src={product.imageUrls[1]}
+                unoptimized
+                width={360}
+              />
+            )}
+          </>
         ) : (
           <DoorIllustration label={`Иллюстрация модели ${product.name}`} variant={product.variant} />
         )}
