@@ -1,6 +1,7 @@
 import { AttributionTracker } from "@/components/attribution-tracker";
 import { Suspense } from "react";
 import { connection } from "next/server";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Boxes, ShieldCheck } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
@@ -74,6 +75,36 @@ async function HomeContent() {
             </div>
           </div>
         </section>
+
+        {configuration.gallery.length > 0 && (
+          <section className="section" id="works">
+            <div className="container">
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">Наши работы</span>
+                  <h2>Двери, которые мы поставили</h2>
+                </div>
+                <p>Реальные объекты в Челябинске и области — без ретуши и постановочных фото.</p>
+              </div>
+              <div className="works-grid">
+                {configuration.gallery.map(({ assetId, caption }) => (
+                  <figure className="work-card" key={assetId}>
+                    <Image
+                      alt={caption ?? "Установленная входная дверь"}
+                      height={750}
+                      loading="lazy"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1100px) 33vw, 300px"
+                      src={`/api/store-assets/${assetId}`}
+                      unoptimized
+                      width={600}
+                    />
+                    {caption && <figcaption>{caption}</figcaption>}
+                  </figure>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="section category-section" id="categories">
           <div className="container">

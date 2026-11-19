@@ -3416,3 +3416,59 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* Галерея выполненных работ */
+.works-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.work-card {
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.work-card img {
+  display: block;
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  transition: transform 260ms ease;
+}
+
+.work-card:hover img {
+  transform: scale(1.03);
+}
+
+.work-card figcaption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 26px 14px 12px;
+  background: linear-gradient(0deg, rgb(29 41 39 / 72%), transparent);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 980px) {
+  .works-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .works-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .work-card img {
+    height: 190px;
+  }
+}

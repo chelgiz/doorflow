@@ -51,6 +51,10 @@ export const storefrontConfigurationSchema = z.object({
     secondaryCtaLabel: z.string().trim().min(2).max(60),
     secondaryCtaHref: homeLinkSchema,
   }).strict(),
+  gallery: z.array(z.object({
+    assetId: z.uuid(),
+    caption: z.string().trim().max(160).nullable(),
+  }).strict()).max(12).default([]),
   theme: storefrontThemeSchema,
   seo: z.object({
     title: z.string().trim().min(2).max(70),
@@ -91,6 +95,7 @@ export const defaultStorefrontConfiguration: StorefrontConfiguration = {
     secondaryCtaLabel: "Как устроен подбор",
     secondaryCtaHref: "#how-to-choose",
   },
+  gallery: [],
   theme: { preset: "warm", ...defaultTheme },
   seo: {
     title: "Входные двери",

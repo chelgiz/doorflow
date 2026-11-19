@@ -40,6 +40,10 @@ export async function GET(
       id: publishedConfiguration.home.bannerAssetId,
     });
   }
+  const galleryIds = publishedConfiguration?.gallery.map((item) => item.assetId) ?? [];
+  if (galleryIds.length > 0) {
+    publicAssetConditions.push({ type: "GALLERY_IMAGE", id: { in: galleryIds } });
+  }
   const publicAsset = await prisma.storeAsset.findFirst({
     where: {
       id: parsedId.data,
