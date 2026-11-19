@@ -2,7 +2,16 @@ import type { MetadataRoute } from "next";
 import { getPublicCatalogProducts } from "@/lib/storefront/catalog";
 import { getPublicSiteUrl } from "@/lib/storefront/seo";
 
-const staticPages = ["", "/catalog", "/about", "/delivery", "/warranty", "/contacts"];
+const staticPages = [
+  "",
+  "/catalog",
+  "/catalog/dlya-kvartiry",
+  "/catalog/dlya-doma",
+  "/about",
+  "/delivery",
+  "/warranty",
+  "/contacts",
+];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = getPublicSiteUrl();

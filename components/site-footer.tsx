@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DoorOpen } from "lucide-react";
+import { BrandMark } from "@/components/site/brand-mark";
 import Image from "next/image";
 import type { StorefrontConfiguration } from "@/lib/storefront/config";
 
@@ -16,7 +16,7 @@ export function SiteFooter({
             <Image alt={identity.publicName} height={42} src={identity.logoUrl} unoptimized width={150} />
           ) : (
             <>
-              <span className="brand-mark" aria-hidden="true"><DoorOpen /></span>
+              <span className="brand-mark"><BrandMark /></span>
               <span className="brand-word">{identity.publicName}</span>
             </>
           )}
@@ -34,6 +34,8 @@ export function SiteFooter({
         <nav aria-label="Навигация в подвале" className="footer-links">
           <Link href="/">Главная</Link>
           <Link href="/catalog">Каталог</Link>
+          <Link href="/catalog/dlya-kvartiry">Для квартиры</Link>
+          <Link href="/catalog/dlya-doma">Для дома</Link>
           <Link href="/about">О магазине</Link>
           <Link href="/delivery">Доставка и монтаж</Link>
           <Link href="/warranty">Гарантия и оплата</Link>

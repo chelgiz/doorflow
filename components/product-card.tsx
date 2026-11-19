@@ -6,6 +6,13 @@ import type { Product } from "@/lib/products";
 
 const priceFormatter = new Intl.NumberFormat("ru-RU");
 
+/** «860 L / 860 R / 960 L / 960 R мм» → «860 и 960 мм» */
+function formatDimensions(dimensions: string) {
+  return dimensions.includes("860") && dimensions.includes("960")
+    ? "860 и 960 мм"
+    : dimensions;
+}
+
 type ProductCardProps = {
   product: Product;
 };
@@ -54,7 +61,9 @@ export function ProductCard({ product }: ProductCardProps) {
         </h3>
         <p className="product-description">{product.description}</p>
         <div className="product-specs" aria-label="Характеристики">
-          {product.dimensions && <span className="product-spec">{product.dimensions}</span>}
+          {product.dimensions && (
+            <span className="product-spec">{formatDimensions(product.dimensions)}</span>
+          )}
           {product.steelThickness !== undefined && (
             <span className="product-spec">Сталь {product.steelThickness} мм</span>
           )}

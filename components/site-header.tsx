@@ -1,7 +1,8 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { DoorOpen, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { BrandMark } from "@/components/site/brand-mark";
 import Link from "next/link";
 import Image from "next/image";
 import type { StorefrontConfiguration } from "@/lib/storefront/config";
@@ -28,7 +29,7 @@ export function SiteHeader({
             <Image alt={identity.publicName} height={42} src={identity.logoUrl} unoptimized width={150} />
           ) : (
             <>
-              <span className="brand-mark"><DoorOpen aria-hidden="true" /></span>
+              <span className="brand-mark"><BrandMark /></span>
               <span className="brand-word">{identity.publicName}</span>
             </>
           )}
@@ -58,7 +59,7 @@ export function SiteHeader({
                     <Image alt={identity.publicName} height={42} src={identity.logoUrl} unoptimized width={150} />
                   ) : (
                     <>
-                      <span className="brand-mark"><DoorOpen aria-hidden="true" /></span>
+                      <span className="brand-mark"><BrandMark /></span>
                       <span className="brand-word">{identity.publicName}</span>
                     </>
                   )}

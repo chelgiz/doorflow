@@ -20,13 +20,13 @@ const categories = [
     icon: Boxes,
     title: "Для квартиры",
     detail: "Тёплые двери с шумоизоляцией для подъезда",
-    href: "/catalog?purpose=apartment",
+    href: "/catalog/dlya-kvartiry",
   },
   {
     icon: ShieldCheck,
     title: "Для дома",
     detail: "Терморазрыв и утепление — для улицы и мороза",
-    href: "/catalog?purpose=house",
+    href: "/catalog/dlya-doma",
   },
 ];
 
