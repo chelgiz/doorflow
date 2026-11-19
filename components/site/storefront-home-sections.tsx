@@ -36,7 +36,7 @@ export function StorefrontHomeSections({
             </div>
             <p className="hero-note">
               <BadgeCheck aria-hidden="true" />
-              Состав и стоимость комплектации рассчитываются по выбранным параметрам.
+              Замер по городу — бесплатно · Оплата после установки
             </p>
           </div>
           <div className="hero-visual">
@@ -55,14 +55,6 @@ export function StorefrontHomeSections({
               ) : (
                 <DoorIllustration variant="graphite" label="Иллюстрация входной двери" />
               )}
-            </div>
-            <span className="hero-stamp">{configuration.identity.publicName}</span>
-            <div className="hero-caption">
-              <span className="hero-caption-mark"><ShieldCheck aria-hidden="true" /></span>
-              <span>
-                <strong>Конфигурация под ваш проём</strong>
-                <small>Размеры и опции — в карточке модели</small>
-              </span>
             </div>
           </div>
         </div>

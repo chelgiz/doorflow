@@ -50,7 +50,7 @@ async function HomeContent() {
       <div className="announcement">
         {demoMode
           ? "ДЕМО-ВИТРИНА · ЦЕНЫ И ХАРАКТЕРИСТИКИ ПОКАЗАНЫ ТОЛЬКО ДЛЯ ПРИМЕРА"
-          : "Каталог магазина · стоимость и характеристики уточняются по опубликованным данным"}
+          : "Стальные двери с установкой в Челябинске · Замер бесплатно"}
       </div>
       <SiteHeader identity={configuration.identity} />
       <main>
