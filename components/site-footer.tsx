@@ -34,7 +34,10 @@ export function SiteFooter({
         <nav aria-label="Навигация в подвале" className="footer-links">
           <Link href="/">Главная</Link>
           <Link href="/catalog">Каталог</Link>
-          <Link href="/#collection">Модели</Link>
+          <Link href="/about">О магазине</Link>
+          <Link href="/delivery">Доставка и монтаж</Link>
+          <Link href="/warranty">Гарантия и оплата</Link>
+          <Link href="/contacts">Контакты</Link>
         </nav>
       </div>
     </footer>

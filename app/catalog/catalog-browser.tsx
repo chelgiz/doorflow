@@ -8,6 +8,16 @@ import type { DoorCategoryFilter, Product } from "@/lib/products";
 
 type SortOrder = "default" | "price-asc" | "price-desc";
 
+type PriceRange = "all" | "under-25" | "25-35" | "35-50" | "over-50";
+
+const priceRanges: { value: PriceRange; label: string; min: number; max: number }[] = [
+  { value: "all", label: "Любая цена", min: 0, max: Number.POSITIVE_INFINITY },
+  { value: "under-25", label: "до 25 000 ₽", min: 0, max: 25_000 },
+  { value: "25-35", label: "25 000–35 000 ₽", min: 25_000, max: 35_000 },
+  { value: "35-50", label: "35 000–50 000 ₽", min: 35_000, max: 50_000 },
+  { value: "over-50", label: "от 50 000 ₽", min: 50_000, max: Number.POSITIVE_INFINITY },
+];
+
 const filters: { value: DoorCategoryFilter; label: string }[] = [
   { value: "all", label: "Все модели" },
   { value: "apartment", label: "Для квартиры" },
@@ -27,11 +37,14 @@ export function CatalogBrowser({ products, demoMode }: CatalogBrowserProps) {
     requestedCategory === "apartment" || requestedCategory === "house" ? requestedCategory : "all",
   );
   const [sortOrder, setSortOrder] = useState<SortOrder>("default");
+  const [priceRange, setPriceRange] = useState<PriceRange>("all");
 
   const visibleProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("ru");
     const matchingProducts = products.filter((product) => {
       const matchesCategory = category === "all" || product.category === category;
+      const range = priceRanges.find((item) => item.value === priceRange) ?? priceRanges[0];
+      const matchesPrice = product.price >= range.min && product.price < range.max;
       const searchableText = [
         product.model,
         product.name,
@@ -42,7 +55,7 @@ export function CatalogBrowser({ products, demoMode }: CatalogBrowserProps) {
         .join(" ")
         .toLocaleLowerCase("ru");
 
-      return matchesCategory && searchableText.includes(normalizedQuery);
+      return matchesCategory && matchesPrice && searchableText.includes(normalizedQuery);
     });
 
     if (sortOrder === "price-asc") {
@@ -54,7 +67,7 @@ export function CatalogBrowser({ products, demoMode }: CatalogBrowserProps) {
     }
 
     return matchingProducts;
-  }, [category, products, query, sortOrder]);
+  }, [category, priceRange, products, query, sortOrder]);
 
   return (
     <section aria-label="Демо-каталог дверей">
@@ -93,6 +106,21 @@ export function CatalogBrowser({ products, demoMode }: CatalogBrowserProps) {
             type="button"
           >
             {filter.label}
+          </button>
+        ))}
+      </div>
+
+      <div aria-label="Фильтр по цене" className="filter-row">
+        <span className="filter-label">Цена:</span>
+        {priceRanges.map((range) => (
+          <button
+            aria-pressed={priceRange === range.value}
+            className="filter-chip"
+            key={range.value}
+            onClick={() => setPriceRange(range.value)}
+            type="button"
+          >
+            {range.label}
           </button>
         ))}
       </div>

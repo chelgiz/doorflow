@@ -11,6 +11,7 @@ const navigation = [
   { href: "/#works", label: "Наши работы" },
   { href: "/delivery", label: "Доставка и монтаж" },
   { href: "/warranty", label: "Гарантия и оплата" },
+  { href: "/about", label: "О магазине" },
   { href: "/contacts", label: "Контакты" },
 ];
 

@@ -15,7 +15,8 @@ import { getQuoteSource } from "@/lib/commerce/quote-source";
 import { defaultStorefrontConfiguration } from "@/lib/storefront/config";
 import { getPublicStorefront } from "@/lib/storefront/data";
 import { products } from "@/lib/products";
-import { getPublicProduct } from "@/lib/storefront/catalog";
+import { getPublicCatalogProducts, getPublicProduct } from "@/lib/storefront/catalog";
+import { ProductCard } from "@/components/product-card";
 
 const priceFormatter = new Intl.NumberFormat("ru-RU");
 
@@ -74,6 +75,33 @@ async function ProductPageContent({ params }: ProductPageProps) {
   if (!product) {
     notFound();
   }
+  const quickFacts = [
+    typeof product.attributes.leafThickness === "number"
+      ? `Полотно ${product.attributes.leafThickness} мм`
+      : null,
+    typeof product.attributes.sealContours === "number"
+      ? `${product.attributes.sealContours} контура уплотнения`
+      : null,
+    typeof product.attributes.locks === "string"
+      ? `Замки: ${product.attributes.locks.split("(")[0].trim().slice(0, 48)}`
+      : null,
+    typeof product.attributes.dimensions === "string"
+      ? product.attributes.dimensions.replace(/\s*[LR]\b/g, "").replace(/\s*\/\s*/g, " / ").includes("860")
+        ? "860 и 960 мм, L/R"
+        : product.attributes.dimensions.slice(0, 48)
+      : null,
+  ].filter((fact): fact is string => Boolean(fact));
+
+  const allProducts = await getPublicCatalogProducts();
+  const similarProducts = allProducts
+    .filter(
+      (item) =>
+        item.slug !== product.slug &&
+        item.category === product.category &&
+        Math.abs(item.price - product.price) <= Math.max(8_000, product.price * 0.35),
+    )
+    .slice(0, 3);
+
   const pricingRules = product.isDemo
     ? demoStorePricing.rules
     : (await getQuoteSource(slug))?.pricing.rules;
@@ -142,19 +170,43 @@ async function ProductPageContent({ params }: ProductPageProps) {
                 <strong>{priceFormatter.format(product.price)} ₽</strong>
                 <span>{product.isDemo ? "условная цена · DEMO" : "базовая цена магазина"}</span>
               </div>
-              <h2 className="sr-only">Характеристики</h2>
-              <dl className="detail-spec-list">
-                {specifications.map(([key, value]) => (
-                  <div className="detail-spec" key={key}>
-                    <dt>{specificationLabels[key] ?? key}</dt>
-                    <dd>{formatAttribute(key, value)}</dd>
-                  </div>
-                ))}
-              </dl>
-              <div className="detail-actions">
-                <Link className="button button-accent" href="/catalog">
-                  Вернуться в каталог <ArrowRight aria-hidden="true" />
+              {quickFacts.length > 0 && (
+                <ul className="detail-facts">
+                  {quickFacts.map((fact) => (
+                    <li className="detail-chip" key={fact}>{fact}</li>
+                  ))}
+                </ul>
+              )}
+              <div className="detail-cta">
+                <Link className="button button-accent" href="#lead-form">
+                  Вызвать замерщика <ArrowRight aria-hidden="true" />
                 </Link>
+                {configuration.identity.phone && (
+                  <a className="button button-outline" href={`tel:${configuration.identity.phone}`}>
+                    {configuration.identity.phone}
+                  </a>
+                )}
+              </div>
+              <div className="detail-included">
+                <h2>Что входит в цену</h2>
+                <p>
+                  Базовая цена — за дверь в комплектации из прайса поставщика. Доставка,
+                  монтаж и отделка проёма считаются отдельно в расчёте ниже, их можно
+                  добавить или убрать.
+                </p>
+              </div>
+              <details className="detail-specs">
+                <summary>Все характеристики ({specifications.length})</summary>
+                <dl className="detail-spec-list">
+                  {specifications.map(([key, value]) => (
+                    <div className="detail-spec" key={key}>
+                      <dt>{specificationLabels[key] ?? key}</dt>
+                      <dd>{formatAttribute(key, value)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </details>
+              <div className="detail-actions">
                 <Link className="button button-outline" href="/catalog">
                   <ArrowLeft aria-hidden="true" /> Все модели
                 </Link>
@@ -169,6 +221,32 @@ async function ProductPageContent({ params }: ProductPageProps) {
             productSlug={product.slug}
             isDemoProduct={product.isDemo}
           />
+
+          {similarProducts.length > 0 && (
+            <section className="similar-models" aria-labelledby="similar-heading">
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">Похожие модели</span>
+                  <h2 id="similar-heading">Может подойти</h2>
+                </div>
+                <Link className="text-link text-link-underline" href="/catalog">
+                  Весь каталог <ArrowRight aria-hidden="true" />
+                </Link>
+              </div>
+              <div className="product-grid">
+                {similarProducts.map((item) => (
+                  <ProductCard key={item.slug} product={item} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="mobile-cta" aria-label="Быстрые действия">
+            {configuration.identity.phone && (
+              <a className="mobile-cta-call" href={`tel:${configuration.identity.phone}`}>Позвонить</a>
+            )}
+            <a className="mobile-cta-request" href="#lead-form">Вызвать замерщика</a>
+          </div>
         </div>
       </main>
       {product.isDemo && (

@@ -3632,3 +3632,128 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* Карточка товара: быстрые факты, CTA, похожие модели, мобильная панель */
+.detail-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.detail-chip {
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.detail-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.detail-included {
+  margin-top: 22px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.detail-included h2 {
+  margin: 0 0 8px;
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 400;
+}
+
+.detail-included p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.detail-specs {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.detail-specs summary {
+  cursor: pointer;
+  color: var(--accent-dark);
+  font-size: 13px;
+  font-weight: 600;
+  list-style: none;
+}
+
+.detail-specs summary::-webkit-details-marker {
+  display: none;
+}
+
+.detail-specs summary::after {
+  content: " ↓";
+}
+
+.detail-specs[open] summary::after {
+  content: " ↑";
+}
+
+.similar-models {
+  margin-top: clamp(30px, 5vw, 54px);
+}
+
+.mobile-cta {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .mobile-cta {
+    position: fixed;
+    z-index: 20;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: rgb(247 246 242 / 96%);
+    backdrop-filter: blur(6px);
+  }
+
+  .mobile-cta a {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .mobile-cta-call {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  .mobile-cta-request {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .detail-main {
+    padding-bottom: 96px;
+  }
+}
