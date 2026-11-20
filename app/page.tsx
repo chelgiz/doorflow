@@ -6,6 +6,7 @@ import { ArrowUpRight, Boxes, ShieldCheck } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { Faq } from "@/components/site/faq";
 import { HowWeWork } from "@/components/site/how-we-work";
 import { WorksGallery } from "@/components/site/works-gallery";
 import { StorefrontHomeSections } from "@/components/site/storefront-home-sections";
@@ -59,6 +60,8 @@ async function HomeContent() {
         <StorefrontHomeSections configuration={configuration} />
 
         <HowWeWork />
+
+        <Faq />
 
         <section className="section" id="collection">
           <div className="container">

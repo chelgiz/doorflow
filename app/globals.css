@@ -3923,3 +3923,48 @@ a {
   font-size: 15px;
   line-height: 1.75;
 }
+
+/* Частые вопросы */
+.faq-list {
+  display: grid;
+  gap: 10px;
+  max-width: 900px;
+}
+
+.faq-item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 0 18px;
+}
+
+.faq-item summary {
+  padding: 16px 0;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  list-style: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::after {
+  content: "+";
+  float: right;
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.faq-item[open] summary::after {
+  content: "−";
+}
+
+.faq-item p {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.75;
+}
