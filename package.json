@@ -18,7 +18,8 @@
     "db:backup": "node scripts/backup-postgres.mjs",
     "db:restore": "node scripts/restore-postgres.mjs",
     "db:local:up": "docker compose up -d postgres",
-    "db:local:down": "docker compose down"
+    "db:local:down": "docker compose down",
+    "demo:share": "bash scripts/share-demo.sh"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
