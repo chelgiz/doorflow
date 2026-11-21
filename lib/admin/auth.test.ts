@@ -55,4 +55,20 @@ describe("admin authentication primitives", () => {
     }))).toBe(false);
     expect(isSameOriginRequest(new Request("https://store.example/api", { method: "POST" }))).toBe(false);
   });
+
+  it("accepts the public origin that the reverse proxy forwards", () => {
+    const proxied = (origin: string) => new Request("http://127.0.0.1:3000/api/admin/auth/login", {
+      method: "POST",
+      headers: {
+        origin,
+        host: "xn--b1ade2affmt.xn--p1ai",
+        "x-forwarded-proto": "https",
+      },
+    });
+
+    expect(isSameOriginRequest(proxied("https://xn--b1ade2affmt.xn--p1ai"))).toBe(true);
+    expect(isSameOriginRequest(proxied("https://www.xn--b1ade2affmt.xn--p1ai"))).toBe(false);
+    expect(isSameOriginRequest(proxied("https://attacker.example"))).toBe(false);
+    expect(isSameOriginRequest(proxied("http://xn--b1ade2affmt.xn--p1ai"))).toBe(false);
+  });
 });

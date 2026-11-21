@@ -218,9 +218,32 @@ export async function authorizeAdmin(permission: AdminPermission) {
 export function isSameOriginRequest(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin) return false;
+  let originUrl: URL;
   try {
-    return new URL(origin).origin === new URL(request.url).origin;
+    originUrl = new URL(origin);
   } catch {
     return false;
   }
+
+  // Behind the reverse proxy (`next start` binds to loopback), `request.url`
+  // carries the internal address, so the public host and scheme come from the
+  // headers the proxy overwrites for every request.
+  const host = firstHeaderValue(request.headers.get("host"))
+    ?? firstHeaderValue(request.headers.get("x-forwarded-host"));
+  if (host) {
+    const protocol = firstHeaderValue(request.headers.get("x-forwarded-proto"))
+      ?? new URL(request.url).protocol.slice(0, -1);
+    return originUrl.host === host && originUrl.protocol === `${protocol}:`;
+  }
+
+  try {
+    return originUrl.origin === new URL(request.url).origin;
+  } catch {
+    return false;
+  }
+}
+
+function firstHeaderValue(value: string | null) {
+  const first = value?.split(",")[0]?.trim();
+  return first ? first : null;
 }
